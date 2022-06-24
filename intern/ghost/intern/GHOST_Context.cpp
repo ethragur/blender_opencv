@@ -122,11 +122,6 @@ bool win32_chk(bool result, const char *file, int line, const char *text)
 
 #endif  // _WIN32
 
-void GHOST_Context::initContextGLEW()
-{
-  GLEW_CHK(glewInit());
-}
-
 void GHOST_Context::initClearGL()
 {
   glClearColor(0.294, 0.294, 0.294, 0.000);
