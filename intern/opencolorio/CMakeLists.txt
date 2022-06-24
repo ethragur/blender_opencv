@@ -3,7 +3,6 @@
 
 set(INC
   .
-  ../glew-mx
   ../guardedalloc
   ../../source/blender/blenlib
   ../../source/blender/gpu

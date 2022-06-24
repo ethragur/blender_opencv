@@ -3,7 +3,6 @@
 
 set(INC
   ..
-  ../../glew-mx
   ../../guardedalloc
   ../../mikktspace
   ../../../source/blender/makesdna

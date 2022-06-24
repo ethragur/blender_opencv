@@ -8,7 +8,6 @@ set(INC
   ../../gpu
   ../../imbuf
   ../../makesdna
-  ../../../../intern/glew-mx
   ../../../../intern/guardedalloc
 )
 

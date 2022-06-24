@@ -3,7 +3,6 @@
 
 blender_include_dirs(
   ../../intern/clog
-  ../../intern/glew-mx
   ../../intern/guardedalloc
   ../blender/blenkernel
   ../blender/blenlib
