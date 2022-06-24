@@ -1320,6 +1320,11 @@ else()
   list(APPEND GL_DEFINITIONS -DWITH_GL_PROFILE_CORE)
 endif()
 
+# link libepoxy
+include(FindPkgConfig)
+pkg_check_modules(epoxy REQUIRED epoxy)
+list(APPEND BLENDER_GL_LIBRARIES ${epoxy_LIBRARIES})
+
 #-----------------------------------------------------------------------------
 # Configure Metal.
 if (WITH_METAL_BACKEND)
