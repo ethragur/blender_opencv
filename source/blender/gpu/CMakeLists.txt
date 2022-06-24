@@ -87,12 +87,10 @@ set(SRC
   GPU_debug.h
   GPU_drawlist.h
   GPU_framebuffer.h
-  GPU_glew.h
   GPU_immediate.h
   GPU_immediate_util.h
   GPU_index_buffer.h
   GPU_init_exit.h
-  GPU_legacy_stubs.h
   GPU_material.h
   GPU_matrix.h
   GPU_platform.h
