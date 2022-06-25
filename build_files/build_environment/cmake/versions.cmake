@@ -80,12 +80,6 @@ set(FREETYPE_HASH bd4e3b007474319909a6b79d50908e85)
 set(FREETYPE_HASH_TYPE MD5)
 set(FREETYPE_FILE freetype-${FREETYPE_VERSION}.tar.gz)
 
-set(GLEW_VERSION 1.13.0)
-set(GLEW_URI http://prdownloads.sourceforge.net/glew/glew/${GLEW_VERSION}/glew-${GLEW_VERSION}.tgz)
-set(GLEW_HASH 7cbada3166d2aadfc4169c4283701066)
-set(GLEW_HASH_TYPE MD5)
-set(GLEW_FILE glew-${GLEW_VERSION}.tgz)
-
 set(FREEGLUT_VERSION 3.0.0)
 set(FREEGLUT_URI http://prdownloads.sourceforge.net/freeglut/freeglut/${FREEGLUT_VERSION}/freeglut-${FREEGLUT_VERSION}.tar.gz)
 set(FREEGLUT_HASH 90c3ca4dd9d51cf32276bc5344ec9754)
