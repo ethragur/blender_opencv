@@ -10,14 +10,12 @@ set(INC
 )
 set(INC_SYS
   ${USD_INCLUDE_DIRS}
-  ${GLEW_INCLUDE_DIR}
 )
 
 set(LIB
   cycles_scene
   cycles_session
   cycles_graph
-  ${CYCLES_GLEW_LIBRARIES}
 )
 cycles_external_libraries_append(LIB)
 

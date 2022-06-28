@@ -217,21 +217,12 @@ endif()
 
 if(UNIX AND NOT APPLE)
   find_package(X11 REQUIRED)
-  find_package(GLEW)
-
-  if(NOT GLEW_FOUND)
-    message(FATAL_ERROR "GLEW is required to build blender, install it or disable WITH_SYSTEM_GLEW")
-  endif()
 
   set(PLATFORM_LINKLIBS
     ${X11_X11_LIB}
     ${X11_Xinput_LIB}
-    ${GLEW_LIBRARY}
     -lpthread
   )
-else()
-  # set(GLEW_LIBRARY "")  # unused
-  set(GLEW_INCLUDE_PATH "${CMAKE_SOURCE_DIR}/extern/glew/include")
 endif()
 
 string(APPEND CMAKE_C_FLAGS " ${PLATFORM_CFLAGS}")

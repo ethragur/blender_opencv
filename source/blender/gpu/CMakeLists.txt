@@ -36,9 +36,7 @@ set(INC
   ../../../intern/mantaflow/extern
 )
 
-set(INC_SYS
-  ${GLEW_INCLUDE_PATH}
-)
+set(INC_SYS )
 
 set(SRC
   intern/gpu_batch.cc
@@ -217,12 +215,6 @@ endif()
 set(LIB
   ${BLENDER_GL_LIBRARIES}
 )
-
-if(NOT WITH_SYSTEM_GLEW)
-  list(APPEND LIB
-    ${BLENDER_GLEW_LIBRARIES}
-  )
-endif()
 
 set(MSL_SRC
 

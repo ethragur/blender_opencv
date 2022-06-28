@@ -5,9 +5,7 @@ set(INC
   .
 )
 
-set(INC_SYS
-  ${GLEW_INCLUDE_PATH}
-)
+set(INC_SYS )
 
 set(SRC
   intern/glew-mx.c

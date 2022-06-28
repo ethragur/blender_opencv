@@ -8,9 +8,7 @@ set(INC
   ../../source/blender/makesdna
 )
 
-set(INC_SYS
-  ${GLEW_INCLUDE_PATH}
-)
+set(INC_SYS )
 
 set(SRC
   intern/GHOST_Buttons.cpp
@@ -69,7 +67,6 @@ set(SRC
 
 set(LIB
   bf_intern_glew_mx
-  ${GLEW_LIBRARY}
 )
 
 if(WITH_GHOST_DEBUG)

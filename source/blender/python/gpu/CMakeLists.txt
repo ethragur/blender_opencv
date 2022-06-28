@@ -13,7 +13,6 @@ set(INC
 )
 
 set(INC_SYS
-  ${GLEW_INCLUDE_PATH}
   ${PYTHON_INCLUDE_DIRS}
 )
 
