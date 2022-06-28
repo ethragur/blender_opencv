@@ -80,6 +80,12 @@ set(FREETYPE_HASH bd4e3b007474319909a6b79d50908e85)
 set(FREETYPE_HASH_TYPE MD5)
 set(FREETYPE_FILE freetype-${FREETYPE_VERSION}.tar.gz)
 
+set(LIBEPOXY_VERSION 1.5.10)
+set(LIBEPOXY_URI https://github.com/anholt/libepoxy/archive/refs/tags/${LIBEPOXY_VERSION}.tar.gz)
+set(LIBEPOXY_HASH f0730aad115c952e77591fcc805b1dc1)
+set(LIBEPOXY_HASH_TYPE MD5)
+set(LIBEPOXY_FILE libepoxy-${LIBEPOXY_VERSION}.tar.gz)
+
 set(FREEGLUT_VERSION 3.0.0)
 set(FREEGLUT_URI http://prdownloads.sourceforge.net/freeglut/freeglut/${FREEGLUT_VERSION}/freeglut-${FREEGLUT_VERSION}.tar.gz)
 set(FREEGLUT_HASH 90c3ca4dd9d51cf32276bc5344ec9754)
