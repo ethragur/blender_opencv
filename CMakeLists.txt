@@ -1321,9 +1321,10 @@ else()
 endif()
 
 # link libepoxy
-include(FindPkgConfig)
-pkg_check_modules(epoxy REQUIRED epoxy)
-list(APPEND BLENDER_GL_LIBRARIES ${epoxy_LIBRARIES})
+set(EPOXY_ROOT_DIR ${LIBDIR}/libepoxy)
+find_package(LibEpoxy REQUIRED)
+list(APPEND BLENDER_GL_LIBRARIES ${LibEpoxy_LIBRARIES})
+include_directories(${LibEpoxy_INCLUDE_DIRS})
 
 #-----------------------------------------------------------------------------
 # Configure Metal.
