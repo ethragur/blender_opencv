@@ -29,6 +29,7 @@ if(WITH_OPENSUBDIV)
 
   list(APPEND INC_SYS
     ${OPENSUBDIV_INCLUDE_DIRS}
+    ${LibEpoxy_INCLUDE_DIRS}
   )
 
   list(APPEND SRC

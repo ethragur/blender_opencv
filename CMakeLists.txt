@@ -1320,12 +1320,6 @@ else()
   list(APPEND GL_DEFINITIONS -DWITH_GL_PROFILE_CORE)
 endif()
 
-# link libepoxy
-set(EPOXY_ROOT_DIR ${LIBDIR}/libepoxy)
-find_package(LibEpoxy REQUIRED)
-list(APPEND BLENDER_GL_LIBRARIES ${LibEpoxy_LIBRARIES})
-include_directories(${LibEpoxy_INCLUDE_DIRS})
-
 #-----------------------------------------------------------------------------
 # Configure Metal.
 if (WITH_METAL_BACKEND)

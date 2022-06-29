@@ -10,12 +10,14 @@ set(INC
 )
 set(INC_SYS
   ${USD_INCLUDE_DIRS}
+  ${LibEpoxy_INCLUDE_DIRS}
 )
 
 set(LIB
   cycles_scene
   cycles_session
   cycles_graph
+  ${LibEpoxy_LIBRARIES}
 )
 cycles_external_libraries_append(LIB)
 

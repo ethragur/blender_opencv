@@ -7,7 +7,9 @@ set(INC
   ../../source/blender/makesdna
 )
 
-set(INC_SYS )
+set(INC_SYS
+  ${LibEpoxy_INCLUDE_DIRS}
+)
 
 set(SRC
   intern/GHOST_Buttons.cpp
@@ -64,7 +66,9 @@ set(SRC
   intern/GHOST_WindowManager.h
 )
 
-set(LIB )
+set(LIB
+  ${LibEpoxy_LIBRARIES}
+)
 
 if(WITH_GHOST_DEBUG)
   list(APPEND SRC
