@@ -51,7 +51,12 @@ void GLBackend::platform_init()
   os = GPU_OS_UNIX;
 #endif
 
-  if (strstr(vendor, "ATI") || strstr(vendor, "AMD")) {
+  if (!vendor) {
+    printf("Warning: No OpenGL vendor detected.\n");
+    device = GPU_DEVICE_UNKNOWN;
+    driver = GPU_DRIVER_ANY;
+  }
+  else if (strstr(vendor, "ATI") || strstr(vendor, "AMD")) {
     device = GPU_DEVICE_ATI;
     driver = GPU_DRIVER_OFFICIAL;
   }
