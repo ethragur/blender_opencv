@@ -88,6 +88,7 @@ NODE_DEFINE(Camera)
   panorama_type_enum.insert("fisheye_equidistant", PANORAMA_FISHEYE_EQUIDISTANT);
   panorama_type_enum.insert("fisheye_equisolid", PANORAMA_FISHEYE_EQUISOLID);
   panorama_type_enum.insert("fisheye_lens_polynomial", PANORAMA_FISHEYE_LENS_POLYNOMIAL);
+  panorama_type_enum.insert("fisheye_opencv", PANORAMA_FISHEYE_OPENCV);
   SOCKET_ENUM(panorama_type, "Panorama Type", panorama_type_enum, PANORAMA_EQUIRECTANGULAR);
 
   SOCKET_FLOAT(fisheye_fov, "Fisheye FOV", M_PI_F);
@@ -105,6 +106,12 @@ NODE_DEFINE(Camera)
   SOCKET_FLOAT(fisheye_polynomial_k2, "Fisheye Polynomial K2", 0.0f);
   SOCKET_FLOAT(fisheye_polynomial_k3, "Fisheye Polynomial K3", 0.0f);
   SOCKET_FLOAT(fisheye_polynomial_k4, "Fisheye Polynomial K4", 0.0f);
+
+
+  SOCKET_FLOAT(fisheye_focal_x, "Fisheye Focal X", 0.0f);
+  SOCKET_FLOAT(fisheye_focal_y, "Fisheye Focal Y", 0.0f);
+  SOCKET_FLOAT(fisheye_optical_sensor_x, "Fisheye Optical Sensor X", 0.0f);
+  SOCKET_FLOAT(fisheye_optical_sensor_y, "Fisheye Optical Sensor Y", 0.0f);
 
   static NodeEnum stereo_eye_enum;
   stereo_eye_enum.insert("none", STEREO_NONE);
@@ -416,6 +423,11 @@ void Camera::update(Scene *scene)
   kcam->fisheye_lens_polynomial_bias = fisheye_polynomial_k0;
   kcam->fisheye_lens_polynomial_coefficients = make_float4(
       fisheye_polynomial_k1, fisheye_polynomial_k2, fisheye_polynomial_k3, fisheye_polynomial_k4);
+
+  kcam->fisheye_focal_x = fisheye_focal_x;
+  kcam->fisheye_focal_y = fisheye_focal_y;
+  kcam->fisheye_optical_sensor_x = fisheye_optical_sensor_x;
+  kcam->fisheye_optical_sensor_y = fisheye_optical_sensor_y;
 
   switch (stereo_eye) {
     case STEREO_LEFT:

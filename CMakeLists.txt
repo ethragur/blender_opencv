@@ -191,7 +191,7 @@ if(APPLE)
   option(WITH_XR_OPENXR   "Enable VR features through the OpenXR specification" OFF)
   mark_as_advanced(WITH_XR_OPENXR)
 else()
-  option(WITH_XR_OPENXR   "Enable VR features through the OpenXR specification" ON)
+  option(WITH_XR_OPENXR   "Enable VR features through the OpenXR specification" OFF)
 endif()
 option(WITH_GMP "Enable features depending on GMP (Exact Boolean)" ON)
 

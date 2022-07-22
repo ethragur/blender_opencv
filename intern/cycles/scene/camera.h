@@ -86,6 +86,11 @@ class Camera : public Node {
   NODE_SOCKET_API(float, fisheye_polynomial_k3)
   NODE_SOCKET_API(float, fisheye_polynomial_k4)
 
+  NODE_SOCKET_API(float, fisheye_focal_x)
+  NODE_SOCKET_API(float, fisheye_focal_y)
+  NODE_SOCKET_API(float, fisheye_optical_sensor_x)
+  NODE_SOCKET_API(float, fisheye_optical_sensor_y)
+
   /* panorama stereo */
   NODE_SOCKET_API(StereoEye, stereo_eye)
   NODE_SOCKET_API(bool, use_spherical_stereo)

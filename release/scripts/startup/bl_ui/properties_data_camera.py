@@ -101,6 +101,18 @@ class DATA_PT_lens(CameraButtonsPanel, Panel):
                     col.prop(ccam, "fisheye_polynomial_k2", text="K2")
                     col.prop(ccam, "fisheye_polynomial_k3", text="K3")
                     col.prop(ccam, "fisheye_polynomial_k4", text="K4")
+                elif ccam.panorama_type == 'FISHEYE_OPENCV':
+                    col.prop(ccam, "fisheye_fov")
+                    col.prop(ccam, "fisheye_polynomial_k0", text="K0")
+                    col.prop(ccam, "fisheye_polynomial_k1", text="K1")
+                    col.prop(ccam, "fisheye_polynomial_k2", text="K2")
+                    col.prop(ccam, "fisheye_polynomial_k3", text="K3")
+                    col.prop(ccam, "fisheye_polynomial_k4", text="K4")
+                    col.prop(ccam, "fisheye_focal_x", text="FX")
+                    col.prop(ccam, "fisheye_focal_y", text="FY")
+                    col.prop(ccam, "fisheye_optical_sensor_x", text="CX")
+                    col.prop(ccam, "fisheye_optical_sensor_y", text="CY")
+
 
             elif engine in {'BLENDER_RENDER', 'BLENDER_EEVEE', 'BLENDER_WORKBENCH'}:
                 if cam.lens_unit == 'MILLIMETERS':
