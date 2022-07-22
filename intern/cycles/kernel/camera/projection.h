@@ -223,9 +223,9 @@ fisheye_opencv_to_direction(float u, float v, float coeff0, float4 coeffs,
         if (fabsf(theta) > 0.5f * fov)
           return zero_float3();
 
-        float phi = safe_acosf((r != 0.0f) ? u / r : 0.0f);
+        float phi = safe_acosf((r != 0.0f) ? x2 / r : 0.0f);
 
-        if (v < 0.0f)
+        if (y2 < 0.0f)
             phi = -phi;
 
         return make_float3(cosf(theta), -cosf(phi) * sinf(theta), sinf(phi) * sinf(theta));
