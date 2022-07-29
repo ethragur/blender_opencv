@@ -486,6 +486,7 @@ enum PanoramaType {
   PANORAMA_MIRRORBALL = 3,
   PANORAMA_FISHEYE_LENS_POLYNOMIAL = 4,
   PANORAMA_FISHEYE_OPENCV = 5,
+  PANORAMA_OMNIDIRECTIONAL = 6,
 
   PANORAMA_NUM_TYPES,
 };
@@ -997,6 +998,13 @@ typedef struct KernelCamera {
   float fisheye_focal_y;
   float fisheye_optical_sensor_x;
   float fisheye_optical_sensor_y;
+
+  float omni_shift_cx;
+  float omni_shift_cy;
+  float omni_c;
+  float omni_d;
+  float omni_e;
+  float omni_radius;
 
   /* stereo */
   float interocular_offset;

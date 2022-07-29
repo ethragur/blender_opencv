@@ -112,6 +112,19 @@ class DATA_PT_lens(CameraButtonsPanel, Panel):
                     col.prop(ccam, "fisheye_focal_y", text="FY")
                     col.prop(ccam, "fisheye_optical_sensor_x", text="CX")
                     col.prop(ccam, "fisheye_optical_sensor_y", text="CY")
+                elif ccam.panorama_type == 'OMNIDIRECTIONAL':
+                    col.prop(ccam, "fisheye_polynomial_k0", text="K0")
+                    col.prop(ccam, "fisheye_polynomial_k1", text="K1")
+                    col.prop(ccam, "fisheye_polynomial_k2", text="K2")
+                    col.prop(ccam, "fisheye_polynomial_k3", text="K3")
+                    col.prop(ccam, "fisheye_polynomial_k4", text="K4")
+                    col.prop(ccam, "omni_shift_cx", text="CX Shift (pixel)")
+                    col.prop(ccam, "omni_shift_cy", text="CY Shift (pixel)")
+                    col.prop(ccam, "omni_c", text="Omni C")
+                    col.prop(ccam, "omni_d", text="Omni D")
+                    col.prop(ccam, "omni_e", text="Omni E")
+                    col.prop(ccam, "omni_radius", text="Radius")
+
 
 
             elif engine in {'BLENDER_RENDER', 'BLENDER_EEVEE', 'BLENDER_WORKBENCH'}:

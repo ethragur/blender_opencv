@@ -63,6 +63,7 @@ enum_panorama_types = (
     ('FISHEYE_LENS_POLYNOMIAL', "Fisheye Lens Polynomial",
      "Defines the lens projection as polynomial to allow real world camera lenses to be mimicked"),
     ('FISHEYE_OPENCV', "OpenCV Fisheye Camera", "Implements distortion based on the OpenCV camera Model"),
+    ('OMNIDIRECTIONAL', "Omnidirectional Camera", "Implements the Omnidirectional camera model by Scaramuzza. Used by matlab"),
 )
 
 enum_curve_shape = (
@@ -887,22 +888,22 @@ class CyclesCameraSettings(bpy.types.PropertyGroup):
     fisheye_polynomial_k0: FloatProperty(
         name="Fisheye Polynomial K0",
         description="Coefficient K0 of the lens polynomial",
-        default=camera.default_fisheye_polynomial[0], precision=6, step=0.1, subtype='ANGLE',
+        default=camera.default_fisheye_polynomial[0], precision=6, step=0.1,
     )
     fisheye_polynomial_k1: FloatProperty(
         name="Fisheye Polynomial K1",
         description="Coefficient K1 of the lens polynomial",
-        default=camera.default_fisheye_polynomial[1], precision=6, step=0.1, subtype='ANGLE',
+        default=camera.default_fisheye_polynomial[1], precision=6, step=0.1,
     )
     fisheye_polynomial_k2: FloatProperty(
         name="Fisheye Polynomial K2",
         description="Coefficient K2 of the lens polynomial",
-        default=camera.default_fisheye_polynomial[2], precision=6, step=0.1, subtype='ANGLE',
+        default=camera.default_fisheye_polynomial[2], precision=6, step=0.1,
     )
     fisheye_polynomial_k3: FloatProperty(
         name="Fisheye Polynomial K3",
         description="Coefficient K3 of the lens polynomial",
-        default=camera.default_fisheye_polynomial[3], precision=6, step=0.1, subtype='ANGLE',
+        default=camera.default_fisheye_polynomial[3], precision=6, step=0.1,
     )
     fisheye_polynomial_k4: FloatProperty(
         name="Fisheye Polynomial K4",
@@ -913,26 +914,57 @@ class CyclesCameraSettings(bpy.types.PropertyGroup):
     fisheye_focal_x: FloatProperty(
         name="Fisheye Focal X",
         description="Focal X of the opencv fisheye lens",
-        default=0.0, precision=6, step=0.1, subtype='ANGLE',
+        default=0.0, precision=6, step=0.1,
     )
 
     fisheye_focal_y: FloatProperty(
         name="Fisheye Focal Y",
         description="Focal Y of the opencv fisheye lens",
-        default=0.0, precision=6, step=0.1, subtype='ANGLE',
+        default=0.0, precision=6, step=0.1,
     )
 
     fisheye_optical_sensor_x: FloatProperty(
         name="Fisheye Optiocal Sensor X",
         description="Optical sensor x of the opencv fisheye lens",
-        default=0.0, precision=6, step=0.1, subtype='ANGLE',
+        default=0.0, precision=6, step=0.1,
     )
 
     fisheye_optical_sensor_y: FloatProperty(
         name="Fisheye Optiocal Sensor y",
         description="Optical sensor y of the opencv fisheye lens",
-        default=0.0, precision=6, step=0.1, subtype='ANGLE',
+        default=0.0, precision=6, step=0.1,
     )
+
+    omni_shift_cx: FloatProperty(
+            name="shift_cx",
+            description="shift_cx",
+            default=-21.763489, precision=6, step=0.1,
+            )
+    omni_shift_cy: FloatProperty(
+            name="shift_cy",
+            description="shift_cy",
+            default=9.460006, precision=6, step=0.1,
+            )
+    omni_c: FloatProperty(
+            name="c",
+            description="c",
+            default=0.999609, precision=6, step=0.1,
+            )
+    omni_d: FloatProperty(
+            name="d",
+            description="d",
+            default=-0.000222, precision=6, step=0.1,
+            )
+    omni_e: FloatProperty(
+            name="e",
+            description="e",
+            default=-0.000116, precision=6, step=0.1,
+            )
+    omni_radius: FloatProperty(
+            name="radius",
+            description="radius",
+            default=0.0, precision=6, step=0.1,
+            )
 
     @classmethod
     def register(cls):

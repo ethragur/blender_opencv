@@ -113,6 +113,13 @@ NODE_DEFINE(Camera)
   SOCKET_FLOAT(fisheye_optical_sensor_x, "Fisheye Optical Sensor X", 0.0f);
   SOCKET_FLOAT(fisheye_optical_sensor_y, "Fisheye Optical Sensor Y", 0.0f);
 
+  SOCKET_FLOAT(omni_shift_cx, "Omni CX Shift", 0.0f);
+  SOCKET_FLOAT(omni_shift_cy, "Omni CY Shift", 0.0f);
+  SOCKET_FLOAT(omni_c, "Omni c ", 0.0f);
+  SOCKET_FLOAT(omni_d, "Omni D ", 0.0f);
+  SOCKET_FLOAT(omni_e, "Omni E ", 0.0f);
+  SOCKET_FLOAT(omni_radius, "Omni Radius", 0.0f);
+
   static NodeEnum stereo_eye_enum;
   stereo_eye_enum.insert("none", STEREO_NONE);
   stereo_eye_enum.insert("left", STEREO_LEFT);
@@ -428,6 +435,13 @@ void Camera::update(Scene *scene)
   kcam->fisheye_focal_y = fisheye_focal_y;
   kcam->fisheye_optical_sensor_x = fisheye_optical_sensor_x;
   kcam->fisheye_optical_sensor_y = fisheye_optical_sensor_y;
+
+  kcam->omni_shift_cx = omni_shift_cx;
+  kcam->omni_shift_cy = omni_shift_cy;
+  kcam->omni_c = omni_c;
+  kcam->omni_d = omni_e;
+  kcam->omni_e = omni_e;
+  kcam->omni_radius = omni_radius;
 
   switch (stereo_eye) {
     case STEREO_LEFT:
