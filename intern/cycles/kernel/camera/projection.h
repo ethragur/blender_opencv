@@ -169,23 +169,23 @@ ccl_device float2 direction_to_fisheye_lens_polynomial(
 fisheye_opencv_to_direction(float u, float v, float coeff0, float4 coeffs,
         float fov, float width, float height)
 {
-    u = (u - 0.5f) * width;
-    v = (v - 0.5f) * height;
+    u = (u - 0.5f);// * width;
+    v = (v - 0.5f);// * height;
 
-    float r = sqrtf(u * u + v * v);
+    float thetad = sqrtf(u * u + v * v);
 
     bool converged = false;
     float eps = 1e-08f;
 
-    if( r < -M_PI_F/2.0f) {
-        r = -M_PI_F/2.0f;
+    if( thetad < -M_PI_F/2.0f) {
+        thetad = -M_PI_F/2.0f;
     }
 
-    if( r > M_PI_F/2.0f) {
-        r = M_PI_F/2.0f;
+    if( thetad > M_PI_F/2.0f) {
+        thetad = M_PI_F/2.0f;
     }
 
-    float theta = r;
+    float theta = thetad;
 
     for(int i = 0; i < 128; i++)
     {
@@ -199,7 +199,7 @@ fisheye_opencv_to_direction(float u, float v, float coeff0, float4 coeffs,
         float k2_theta6 = coeffs[2] * theta6;
         float k3_theta8 = coeffs[3] * theta8;
 
-        float theta_fix = (theta * (1.0f + k0_theta2 + k1_theta4 + k2_theta6 + k3_theta8) - r) /
+        float theta_fix = (theta * (1.0f + k0_theta2 + k1_theta4 + k2_theta6 + k3_theta8) - thetad) /
             ( 1.0f + 3.0f*k0_theta2 + 5.0f*k1_theta4 + 7.0f*k2_theta6 + 9.0f*k3_theta8);
 
         theta = theta - theta_fix;
@@ -211,11 +211,11 @@ fisheye_opencv_to_direction(float u, float v, float coeff0, float4 coeffs,
         }
     }
 
-    bool theta_flipped = (r < 0.0f && theta > 0.0f) || (r > 0.0f && theta < 0.0f);
-    float scale = tanf(theta) / r;
+    bool theta_flipped = (thetad < 0.0f && theta > 0.0f) || (thetad > 0.0f && theta < 0.0f);
 
     if ( converged && !theta_flipped)
     {
+        float scale = tanf(theta) / thetad;
         float x2 = u*scale;
         float y2 = v*scale;
         float r = sqrtf(x2*x2+y2*y2);

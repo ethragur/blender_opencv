@@ -184,7 +184,7 @@ option(WITH_PUGIXML       "Enable PugiXML support (Used for OpenImageIO, Grease 
 option(WITH_BULLET        "Enable Bullet (Physics Engine)" ON)
 option(WITH_SYSTEM_BULLET "Use the systems bullet library (currently unsupported due to missing features in upstream!)" )
 mark_as_advanced(WITH_SYSTEM_BULLET)
-option(WITH_OPENCOLORIO   "Enable OpenColorIO color management" ON)
+option(WITH_OPENCOLORIO   "Enable OpenColorIO color management" OFF)
 if(APPLE)
   # There's no OpenXR runtime in sight for macOS, neither is code well
   # tested there -> disable it by default.
