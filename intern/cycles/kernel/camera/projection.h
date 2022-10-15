@@ -187,7 +187,7 @@ fisheye_opencv_to_direction(float u, float v, float coeff0, float4 coeffs,
 
     float theta = thetad;
 
-    for(int i = 0; i < 128; i++)
+    for(int i = 0; i < 16; i++)
     {
         float theta2 = theta * theta;
         float theta4 = theta2 * theta2;
