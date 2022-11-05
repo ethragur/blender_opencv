@@ -888,27 +888,27 @@ class CyclesCameraSettings(bpy.types.PropertyGroup):
     fisheye_polynomial_k0: FloatProperty(
         name="Fisheye Polynomial K0",
         description="Coefficient K0 of the lens polynomial",
-        default=camera.default_fisheye_polynomial[0], precision=6, step=0.1,
+        default=camera.default_fisheye_polynomial[0], precision=10, step=0.1,
     )
     fisheye_polynomial_k1: FloatProperty(
         name="Fisheye Polynomial K1",
         description="Coefficient K1 of the lens polynomial",
-        default=camera.default_fisheye_polynomial[1], precision=6, step=0.1,
+        default=camera.default_fisheye_polynomial[1], precision=10, step=0.1,
     )
     fisheye_polynomial_k2: FloatProperty(
         name="Fisheye Polynomial K2",
         description="Coefficient K2 of the lens polynomial",
-        default=camera.default_fisheye_polynomial[2], precision=6, step=0.1,
+        default=camera.default_fisheye_polynomial[2], precision=10, step=0.1,
     )
     fisheye_polynomial_k3: FloatProperty(
         name="Fisheye Polynomial K3",
         description="Coefficient K3 of the lens polynomial",
-        default=camera.default_fisheye_polynomial[3], precision=6, step=0.1,
+        default=camera.default_fisheye_polynomial[3], precision=10, step=0.1,
     )
     fisheye_polynomial_k4: FloatProperty(
         name="Fisheye Polynomial K4",
         description="Coefficient K4 of the lens polynomial",
-        default=camera.default_fisheye_polynomial[4], precision=6, step=0.1, subtype='ANGLE',
+        default=camera.default_fisheye_polynomial[4], precision=10, step=0.1,
     )
 
     fisheye_focal_x: FloatProperty(

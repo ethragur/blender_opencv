@@ -89,6 +89,7 @@ NODE_DEFINE(Camera)
   panorama_type_enum.insert("fisheye_equisolid", PANORAMA_FISHEYE_EQUISOLID);
   panorama_type_enum.insert("fisheye_lens_polynomial", PANORAMA_FISHEYE_LENS_POLYNOMIAL);
   panorama_type_enum.insert("fisheye_opencv", PANORAMA_FISHEYE_OPENCV);
+  panorama_type_enum.insert("omnidirectional", PANORAMA_OMNIDIRECTIONAL);
   SOCKET_ENUM(panorama_type, "Panorama Type", panorama_type_enum, PANORAMA_EQUIRECTANGULAR);
 
   SOCKET_FLOAT(fisheye_fov, "Fisheye FOV", M_PI_F);

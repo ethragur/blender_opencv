@@ -167,10 +167,10 @@ ccl_device float2 direction_to_fisheye_lens_polynomial(
 
     ccl_device_inline float3
 fisheye_opencv_to_direction(float u, float v, float coeff0, float4 coeffs,
-        float fov, float width, float height)
+        float fx, float fy, float cx, float cy)
 {
-    u = (u - 0.5f);// * width;
-    v = (v - 0.5f);// * height;
+    u = (u - cx) / fx;// * width;
+    v = (v - cy) / fy;// * height;
 
     float thetad = sqrtf(u * u + v * v);
 
@@ -220,8 +220,8 @@ fisheye_opencv_to_direction(float u, float v, float coeff0, float4 coeffs,
         float y2 = v*scale;
         float r = sqrtf(x2*x2+y2*y2);
 
-        if (fabsf(theta) > 0.5f * fov)
-          return zero_float3();
+        //if (fabsf(theta) > 0.5f * fov)
+        //  return zero_float3();
 
         float phi = safe_acosf((r != 0.0f) ? x2 / r : 0.0f);
 
@@ -369,9 +369,10 @@ ccl_device_inline float3 panorama_to_direction(ccl_constant KernelCamera *cam, f
                     v,
                     cam->fisheye_lens_polynomial_bias,
                     cam->fisheye_lens_polynomial_coefficients,
-                    cam->fisheye_fov,
-                    cam->sensorwidth,
-                    cam->sensorheight);
+                    cam->fisheye_focal_x,
+                    cam->fisheye_focal_y,
+                    cam->fisheye_optical_sensor_x,
+                    cam->fisheye_optical_sensor_y);
         case PANORAMA_OMNIDIRECTIONAL:
             return omni_to_direction(u,
                     v,
