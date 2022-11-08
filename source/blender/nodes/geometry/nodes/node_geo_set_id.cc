@@ -16,16 +16,16 @@ static void set_id_in_component(GeometryComponent &component,
                                 const Field<bool> &selection_field,
                                 const Field<int> &id_field)
 {
-  const AttributeDomain domain = (component.type() == GEO_COMPONENT_TYPE_INSTANCES) ?
-                                     ATTR_DOMAIN_INSTANCE :
-                                     ATTR_DOMAIN_POINT;
+  const eAttrDomain domain = (component.type() == GEO_COMPONENT_TYPE_INSTANCES) ?
+                                 ATTR_DOMAIN_INSTANCE :
+                                 ATTR_DOMAIN_POINT;
   GeometryComponentFieldContext field_context{component, domain};
-  const int domain_size = component.attribute_domain_size(domain);
-  if (domain_size == 0) {
+  const int domain_num = component.attribute_domain_num(domain);
+  if (domain_num == 0) {
     return;
   }
 
-  fn::FieldEvaluator evaluator{field_context, domain_size};
+  fn::FieldEvaluator evaluator{field_context, domain_num};
   evaluator.set_selection(selection_field);
 
   /* Since adding the ID attribute can change the result of the field evaluation (the random value
@@ -42,7 +42,7 @@ static void set_id_in_component(GeometryComponent &component,
     evaluator.add(id_field);
     evaluator.evaluate();
     const IndexMask selection = evaluator.get_evaluated_selection_as_mask();
-    const VArray<int> &result_ids = evaluator.get_evaluated<int>(0);
+    const VArray<int> result_ids = evaluator.get_evaluated<int>(0);
     OutputAttribute_Typed<int> id_attribute = component.attribute_try_get_for_output_only<int>(
         "id", domain);
     result_ids.materialize(selection, id_attribute.as_span());

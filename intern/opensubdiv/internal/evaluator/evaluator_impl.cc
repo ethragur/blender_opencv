@@ -388,6 +388,11 @@ void EvalOutputAPI::wrapSrcBuffer(OpenSubdiv_Buffer *src_buffer)
   implementation_->wrapSrcBuffer(src_buffer);
 }
 
+void EvalOutputAPI::wrapSrcVertexDataBuffer(OpenSubdiv_Buffer *src_buffer)
+{
+  implementation_->wrapSrcVertexDataBuffer(src_buffer);
+}
+
 void EvalOutputAPI::fillFVarPatchArraysBuffer(const int face_varying_channel,
                                               OpenSubdiv_Buffer *patch_arrays_buffer)
 {
@@ -410,6 +415,11 @@ void EvalOutputAPI::wrapFVarSrcBuffer(const int face_varying_channel,
                                       OpenSubdiv_Buffer *src_buffer)
 {
   implementation_->wrapFVarSrcBuffer(face_varying_channel, src_buffer);
+}
+
+bool EvalOutputAPI::hasVertexData() const
+{
+  return implementation_->hasVertexData();
 }
 
 }  // namespace opensubdiv
@@ -569,7 +579,7 @@ OpenSubdiv_EvaluatorImpl *openSubdiv_createEvaluatorInternal(
   evaluator_descr->eval_output = new blender::opensubdiv::EvalOutputAPI(eval_output, patch_map);
   evaluator_descr->patch_map = patch_map;
   evaluator_descr->patch_table = patch_table;
-  // TOOD(sergey): Look into whether we've got duplicated stencils arrays.
+  // TODO(sergey): Look into whether we've got duplicated stencils arrays.
   delete vertex_stencils;
   delete varying_stencils;
   for (const StencilTable *table : all_face_varying_stencils) {

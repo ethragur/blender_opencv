@@ -25,7 +25,7 @@ static void node_declare(NodeDeclarationBuilder &b)
 static void set_computed_position_and_offset(GeometryComponent &component,
                                              const VArray<float3> &in_positions,
                                              const VArray<float3> &in_offsets,
-                                             const AttributeDomain domain,
+                                             const eAttrDomain domain,
                                              const IndexMask selection)
 {
 
@@ -139,24 +139,23 @@ static void set_position_in_component(GeometryComponent &component,
                                       const Field<float3> &position_field,
                                       const Field<float3> &offset_field)
 {
-  AttributeDomain domain = component.type() == GEO_COMPONENT_TYPE_INSTANCES ?
-                               ATTR_DOMAIN_INSTANCE :
-                               ATTR_DOMAIN_POINT;
+  eAttrDomain domain = component.type() == GEO_COMPONENT_TYPE_INSTANCES ? ATTR_DOMAIN_INSTANCE :
+                                                                          ATTR_DOMAIN_POINT;
   GeometryComponentFieldContext field_context{component, domain};
-  const int domain_size = component.attribute_domain_size(domain);
-  if (domain_size == 0) {
+  const int domain_num = component.attribute_domain_num(domain);
+  if (domain_num == 0) {
     return;
   }
 
-  fn::FieldEvaluator evaluator{field_context, domain_size};
+  fn::FieldEvaluator evaluator{field_context, domain_num};
   evaluator.set_selection(selection_field);
   evaluator.add(position_field);
   evaluator.add(offset_field);
   evaluator.evaluate();
 
   const IndexMask selection = evaluator.get_evaluated_selection_as_mask();
-  const VArray<float3> &positions_input = evaluator.get_evaluated<float3>(0);
-  const VArray<float3> &offsets_input = evaluator.get_evaluated<float3>(1);
+  const VArray<float3> positions_input = evaluator.get_evaluated<float3>(0);
+  const VArray<float3> offsets_input = evaluator.get_evaluated<float3>(1);
   set_computed_position_and_offset(component, positions_input, offsets_input, domain, selection);
 }
 

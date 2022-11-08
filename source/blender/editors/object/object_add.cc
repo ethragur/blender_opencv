@@ -1272,9 +1272,9 @@ void OBJECT_OT_drop_named_image(wmOperatorType *ot)
                   "Relative Path",
                   "Select the file relative to the blend file");
   RNA_def_property_flag(prop, (PropertyFlag)(PROP_HIDDEN | PROP_SKIP_SAVE));
-  prop = RNA_def_string(
-      ot->srna, "name", nullptr, MAX_ID_NAME - 2, "Name", "Image name to assign");
-  RNA_def_property_flag(prop, (PropertyFlag)(PROP_HIDDEN | PROP_SKIP_SAVE));
+
+  WM_operator_properties_id_lookup(ot, true);
+
   ED_object_add_generic_props(ot, false);
 }
 
@@ -1736,8 +1736,7 @@ static int object_instance_add_invoke(bContext *C, wmOperator *op, const wmEvent
     RNA_int_set(op->ptr, "drop_y", event->xy[1]);
   }
 
-  if (!RNA_struct_property_is_set(op->ptr, "name") &&
-      !RNA_struct_property_is_set(op->ptr, "session_uuid")) {
+  if (!WM_operator_properties_id_lookup_is_set(op->ptr)) {
     return WM_enum_search_invoke(C, op, event);
   }
   return op->type->exec(C, op);
@@ -1769,16 +1768,7 @@ void OBJECT_OT_collection_instance_add(wmOperatorType *ot)
   ot->prop = prop;
   ED_object_add_generic_props(ot, false);
 
-  prop = RNA_def_int(ot->srna,
-                     "session_uuid",
-                     0,
-                     INT32_MIN,
-                     INT32_MAX,
-                     "Session UUID",
-                     "Session UUID of the collection to add",
-                     INT32_MIN,
-                     INT32_MAX);
-  RNA_def_property_flag(prop, (PropertyFlag)(PROP_SKIP_SAVE | PROP_HIDDEN));
+  WM_operator_properties_id_lookup(ot, false);
 
   object_add_drop_xy_props(ot);
 }
@@ -1875,20 +1865,11 @@ void OBJECT_OT_collection_external_asset_drop(wmOperatorType *ot)
   ot->flag = OPTYPE_REGISTER | OPTYPE_UNDO | OPTYPE_INTERNAL;
 
   /* properties */
-  prop = RNA_def_int(ot->srna,
-                     "session_uuid",
-                     0,
-                     INT32_MIN,
-                     INT32_MAX,
-                     "Session UUID",
-                     "Session UUID of the collection to add",
-                     INT32_MIN,
-                     INT32_MAX);
-  RNA_def_property_flag(prop, (PropertyFlag)(PROP_SKIP_SAVE | PROP_HIDDEN));
+  WM_operator_properties_id_lookup(ot, false);
 
   ED_object_add_generic_props(ot, false);
 
-  /* Important: Instancing option. Intentionally remembered across executions (no #PROP_SKIP_SAVE).
+  /* IMPORTANT: Instancing option. Intentionally remembered across executions (no #PROP_SKIP_SAVE).
    */
   RNA_def_boolean(ot->srna,
                   "use_instance",
@@ -1920,18 +1901,12 @@ static int object_data_instance_add_exec(bContext *C, wmOperator *op)
   ushort local_view_bits;
   float loc[3], rot[3];
 
-  PropertyRNA *prop_name = RNA_struct_find_property(op->ptr, "name");
   PropertyRNA *prop_type = RNA_struct_find_property(op->ptr, "type");
   PropertyRNA *prop_location = RNA_struct_find_property(op->ptr, "location");
 
-  /* These shouldn't fail when created by outliner dropping as it checks the ID is valid. */
-  if (!RNA_property_is_set(op->ptr, prop_name) || !RNA_property_is_set(op->ptr, prop_type)) {
-    return OPERATOR_CANCELLED;
-  }
   const short id_type = RNA_property_enum_get(op->ptr, prop_type);
-  char name[MAX_ID_NAME - 2];
-  RNA_property_string_get(op->ptr, prop_name, name);
-  id = BKE_libblock_find_name(bmain, id_type, name);
+  id = WM_operator_properties_id_lookup_from_name_or_session_uuid(
+      bmain, op->ptr, (ID_Type)id_type);
   if (id == nullptr) {
     return OPERATOR_CANCELLED;
   }
@@ -1974,7 +1949,7 @@ void OBJECT_OT_data_instance_add(wmOperatorType *ot)
   ot->flag = OPTYPE_REGISTER | OPTYPE_UNDO;
 
   /* properties */
-  RNA_def_string(ot->srna, "name", "Name", MAX_ID_NAME - 2, "Name", "ID name to add");
+  WM_operator_properties_id_lookup(ot, true);
   PropertyRNA *prop = RNA_def_enum(ot->srna, "type", rna_enum_id_type_items, 0, "Type", "");
   RNA_def_property_translation_context(prop, BLT_I18NCONTEXT_ID_ID);
   ED_object_add_generic_props(ot, false);
@@ -2009,7 +1984,7 @@ static int object_speaker_add_exec(bContext *C, wmOperator *op)
     AnimData *adt = BKE_animdata_ensure_id(&ob->id);
     NlaTrack *nlt = BKE_nlatrack_add(adt, nullptr, is_liboverride);
     NlaStrip *strip = BKE_nla_add_soundstrip(bmain, scene, static_cast<Speaker *>(ob->data));
-    strip->start = CFRA;
+    strip->start = scene->r.cfra;
     strip->end += strip->start;
 
     /* hook them up */
@@ -2111,9 +2086,31 @@ static int object_curves_empty_hair_add_exec(bContext *C, wmOperator *op)
     Curves *curves_id = static_cast<Curves *>(object->data);
     curves_id->surface = surface_ob;
     id_us_plus(&surface_ob->id);
+
+    Mesh *surface_mesh = static_cast<Mesh *>(surface_ob->data);
+    const char *uv_name = CustomData_get_active_layer_name(&surface_mesh->ldata, CD_MLOOPUV);
+    if (uv_name != nullptr) {
+      curves_id->surface_uv_map = BLI_strdup(uv_name);
+    }
   }
 
   return OPERATOR_FINISHED;
+}
+
+static bool object_curves_empty_hair_add_poll(bContext *C)
+{
+  if (!U.experimental.use_new_curves_type) {
+    return false;
+  }
+  if (!ED_operator_objectmode(C)) {
+    return false;
+  }
+  Object *ob = CTX_data_active_object(C);
+  if (ob == nullptr || ob->type != OB_MESH) {
+    CTX_wm_operator_poll_msg_set(C, "No active mesh object");
+    return false;
+  }
+  return true;
 }
 
 void OBJECT_OT_curves_empty_hair_add(wmOperatorType *ot)
@@ -2123,7 +2120,7 @@ void OBJECT_OT_curves_empty_hair_add(wmOperatorType *ot)
   ot->idname = "OBJECT_OT_curves_empty_hair_add";
 
   ot->exec = object_curves_empty_hair_add_exec;
-  ot->poll = object_curves_add_poll;
+  ot->poll = object_curves_empty_hair_add_poll;
 
   ot->flag = OPTYPE_REGISTER | OPTYPE_UNDO;
 
@@ -2762,8 +2759,31 @@ static const EnumPropertyItem convert_target_items[] = {
      "Point Cloud",
      "Point Cloud from Mesh objects"},
 #endif
+    {OB_CURVES, "CURVES", ICON_OUTLINER_OB_CURVES, "Curves", "Curves from evaluated curve data"},
     {0, nullptr, 0, nullptr, nullptr},
 };
+
+static const EnumPropertyItem *convert_target_items_fn(bContext *UNUSED(C),
+                                                       PointerRNA *UNUSED(ptr),
+                                                       PropertyRNA *UNUSED(prop),
+                                                       bool *r_free)
+{
+  EnumPropertyItem *items = nullptr;
+  int items_num = 0;
+  for (const EnumPropertyItem *item = convert_target_items; item->identifier != nullptr; item++) {
+    if (item->value == OB_CURVES) {
+      if (U.experimental.use_new_curves_type) {
+        RNA_enum_item_add(&items, &items_num, item);
+      }
+    }
+    else {
+      RNA_enum_item_add(&items, &items_num, item);
+    }
+  }
+  RNA_enum_item_end(&items, &items_num);
+  *r_free = true;
+  return items;
+}
 
 static void object_data_convert_ensure_curve_cache(Depsgraph *depsgraph, Scene *scene, Object *ob)
 {
@@ -3064,6 +3084,50 @@ static int object_convert_exec(bContext *C, wmOperator *op)
         }
       }
       ob_gpencil->actcol = actcol;
+    }
+    else if (target == OB_CURVES) {
+      ob->flag |= OB_DONE;
+
+      Object *ob_eval = DEG_get_evaluated_object(depsgraph, ob);
+      GeometrySet geometry;
+      if (ob_eval->runtime.geometry_set_eval != nullptr) {
+        geometry = *ob_eval->runtime.geometry_set_eval;
+      }
+
+      if (geometry.has_curves()) {
+        if (keep_original) {
+          basen = duplibase_for_convert(bmain, depsgraph, scene, view_layer, base, nullptr);
+          newob = basen->object;
+
+          /* Decrement original curve's usage count. */
+          Curve *legacy_curve = static_cast<Curve *>(newob->data);
+          id_us_min(&legacy_curve->id);
+
+          /* Make a copy of the curve. */
+          newob->data = BKE_id_copy(bmain, &legacy_curve->id);
+        }
+        else {
+          newob = ob;
+        }
+
+        const CurveComponent &curve_component = *geometry.get_component_for_read<CurveComponent>();
+        const Curves *curves_eval = curve_component.get_for_read();
+        Curves *new_curves = static_cast<Curves *>(BKE_id_new(bmain, ID_CV, newob->id.name + 2));
+
+        newob->data = new_curves;
+        newob->type = OB_CURVES;
+
+        blender::bke::CurvesGeometry::wrap(
+            new_curves->geometry) = blender::bke::CurvesGeometry::wrap(curves_eval->geometry);
+        BKE_object_material_from_eval_data(bmain, newob, &curves_eval->id);
+
+        BKE_object_free_derived_caches(newob);
+        BKE_object_free_modifiers(newob, 0);
+      }
+      else {
+        BKE_reportf(
+            op->reports, RPT_WARNING, "Object '%s' has no evaluated curves data", ob->id.name + 2);
+      }
     }
     else if (ob->type == OB_MESH && target == OB_POINTCLOUD) {
       ob->flag |= OB_DONE;
@@ -3480,6 +3544,7 @@ void OBJECT_OT_convert(wmOperatorType *ot)
   /* properties */
   ot->prop = RNA_def_enum(
       ot->srna, "target", convert_target_items, OB_MESH, "Target", "Type of object to convert to");
+  RNA_def_enum_funcs(ot->prop, convert_target_items_fn);
   RNA_def_boolean(ot->srna,
                   "keep_original",
                   false,

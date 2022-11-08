@@ -52,6 +52,18 @@ extern "C" {
 #  define BKE_MESH_OMP_LIMIT 10000
 #endif
 
+/*  mesh_runtime.cc  */
+
+/**
+ * Call after changing vertex positions to tag lazily calculated caches for recomputation.
+ */
+void BKE_mesh_tag_coords_changed(struct Mesh *mesh);
+
+/**
+ * Call after moving every mesh vertex by the same translation.
+ */
+void BKE_mesh_tag_coords_changed_uniformly(struct Mesh *mesh);
+
 /* *** mesh.c *** */
 
 struct BMesh *BKE_mesh_to_bmesh_ex(const struct Mesh *me,
@@ -204,6 +216,7 @@ bool BKE_mesh_material_index_used(struct Mesh *me, short index);
 void BKE_mesh_material_index_clear(struct Mesh *me);
 void BKE_mesh_material_remap(struct Mesh *me, const unsigned int *remap, unsigned int remap_len);
 void BKE_mesh_smooth_flag_set(struct Mesh *me, bool use_smooth);
+void BKE_mesh_auto_smooth_flag_set(struct Mesh *me, bool use_auto_smooth, float auto_smooth_angle);
 
 /**
  * Needed after converting a mesh with subsurf optimal display to mesh.
@@ -323,21 +336,10 @@ void BKE_mesh_vert_coords_apply(struct Mesh *mesh, const float (*vert_coords)[3]
 /**
  * Recreate #MFace Tessellation.
  *
- * \param do_face_nor_copy: Controls whether the normals from the poly
- * are copied to the tessellated faces.
- *
- * \return number of tessellation faces.
- *
  * \note This doesn't use multi-threading like #BKE_mesh_recalc_looptri since
  * it's not used in many places and #MFace should be phased out.
  */
-int BKE_mesh_tessface_calc_ex(struct CustomData *fdata,
-                              struct CustomData *ldata,
-                              struct CustomData *pdata,
-                              struct MVert *mvert,
-                              int totface,
-                              int totloop,
-                              int totpoly);
+
 void BKE_mesh_tessface_calc(struct Mesh *mesh);
 
 /**
@@ -884,9 +886,6 @@ enum {
  * Actually this later behavior could apply to the Mirror Modifier as well,
  * but the additional checks are costly and not necessary in the case of mirror,
  * because each vertex is only merged to its own mirror.
- *
- * \note #BKE_mesh_tessface_calc_ex has to run on the returned DM
- * if you want to access tess-faces.
  */
 struct Mesh *BKE_mesh_merge_verts(struct Mesh *mesh,
                                   const int *vtargetmap,
@@ -931,13 +930,6 @@ void BKE_mesh_flush_select_from_polys_ex(struct MVert *mvert,
                                          const struct MPoly *mpoly,
                                          int totpoly);
 void BKE_mesh_flush_select_from_polys(struct Mesh *me);
-void BKE_mesh_flush_select_from_verts_ex(const struct MVert *mvert,
-                                         int totvert,
-                                         const struct MLoop *mloop,
-                                         struct MEdge *medge,
-                                         int totedge,
-                                         struct MPoly *mpoly,
-                                         int totpoly);
 void BKE_mesh_flush_select_from_verts(struct Mesh *me);
 
 /* spatial evaluation */

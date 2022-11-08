@@ -63,7 +63,7 @@ struct AttributeOutputs {
 
 static void save_selection_as_attribute(MeshComponent &component,
                                         const AnonymousAttributeID *id,
-                                        const AttributeDomain domain,
+                                        const eAttrDomain domain,
                                         const IndexMask selection)
 {
   BLI_assert(!component.attribute_exists(id));
@@ -109,7 +109,7 @@ static MutableSpan<MLoop> mesh_loops(Mesh &mesh)
 }
 
 /**
- * \note: Some areas in this file rely on the new sections of attributes from #CustomData_realloc
+ * \note Some areas in this file rely on the new sections of attributes from #CustomData_realloc
  * to be zeroed.
  */
 static void expand_mesh(Mesh &mesh,
@@ -145,7 +145,7 @@ static void expand_mesh(Mesh &mesh,
   BKE_mesh_update_customdata_pointers(&mesh, false);
 }
 
-static CustomData &get_customdata(Mesh &mesh, const AttributeDomain domain)
+static CustomData &get_customdata(Mesh &mesh, const eAttrDomain domain)
 {
   switch (domain) {
     case ATTR_DOMAIN_POINT:
@@ -162,13 +162,13 @@ static CustomData &get_customdata(Mesh &mesh, const AttributeDomain domain)
   }
 }
 
-static MutableSpan<int> get_orig_index_layer(Mesh &mesh, const AttributeDomain domain)
+static MutableSpan<int> get_orig_index_layer(Mesh &mesh, const eAttrDomain domain)
 {
   MeshComponent component;
   component.replace(&mesh, GeometryOwnershipType::ReadOnly);
   CustomData &custom_data = get_customdata(mesh, domain);
   if (int *orig_indices = static_cast<int *>(CustomData_get_layer(&custom_data, CD_ORIGINDEX))) {
-    return {orig_indices, component.attribute_domain_size(domain)};
+    return {orig_indices, component.attribute_domain_num(domain)};
   }
   return {};
 }
@@ -424,7 +424,7 @@ static void extrude_mesh_edges(MeshComponent &component,
   edge_evaluator.add(offset_field);
   edge_evaluator.evaluate();
   const IndexMask edge_selection = edge_evaluator.get_evaluated_selection_as_mask();
-  const VArray<float3> &edge_offsets = edge_evaluator.get_evaluated<float3>(0);
+  const VArray<float3> edge_offsets = edge_evaluator.get_evaluated<float3>(0);
   if (edge_selection.is_empty()) {
     return;
   }
@@ -686,7 +686,7 @@ static void extrude_mesh_face_regions(MeshComponent &component,
   poly_evaluator.add(offset_field);
   poly_evaluator.evaluate();
   const IndexMask poly_selection = poly_evaluator.get_evaluated_selection_as_mask();
-  const VArray<float3> &poly_offsets = poly_evaluator.get_evaluated<float3>(0);
+  const VArray<float3> poly_offsets = poly_evaluator.get_evaluated<float3>(0);
   if (poly_selection.is_empty()) {
     return;
   }

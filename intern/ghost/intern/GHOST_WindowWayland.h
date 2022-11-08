@@ -10,14 +10,12 @@
 
 #include "GHOST_Window.h"
 
-#include <unordered_set>
 #include <vector>
 
 class GHOST_SystemWayland;
 
 struct output_t;
 struct window_t;
-struct wl_surface;
 
 class GHOST_WindowWayland : public GHOST_Window {
  public:
@@ -38,27 +36,10 @@ class GHOST_WindowWayland : public GHOST_Window {
 
   ~GHOST_WindowWayland() override;
 
+  /* Ghost API */
+
   uint16_t getDPIHint() override;
 
-  GHOST_TSuccess close();
-
-  GHOST_TSuccess activate();
-
-  GHOST_TSuccess deactivate();
-
-  GHOST_TSuccess notify_size();
-
-  wl_surface *surface() const;
-
-  const std::vector<output_t *> &outputs() const;
-
-  std::unordered_set<const output_t *> &outputs_active();
-
-  uint16_t &dpi();
-
-  int &scale();
-
- protected:
   GHOST_TSuccess setWindowCursorGrab(GHOST_TGrabCursorMode mode) override;
 
   GHOST_TSuccess setWindowCursorShape(GHOST_TStandardCursor shape) override;
@@ -70,6 +51,9 @@ class GHOST_WindowWayland : public GHOST_Window {
                                             int hotX,
                                             int hotY,
                                             bool canInvertColor) override;
+  bool getCursorGrabUseSoftwareDisplay() override;
+
+  GHOST_TSuccess getCursorBitmap(GHOST_CursorBitmapRef *bitmap) override;
 
   void setTitle(const char *title) override;
 
@@ -108,6 +92,42 @@ class GHOST_WindowWayland : public GHOST_Window {
 #ifdef GHOST_OPENGL_ALPHA
   void setOpaque() const;
 #endif
+
+  /* WAYLAND direct-data access. */
+
+  uint16_t dpi() const;
+  int scale() const;
+  struct wl_surface *surface() const;
+  const std::vector<output_t *> &outputs();
+
+  /* WAYLAND query access. */
+
+  /**
+   * Use window find function when the window may have been closed.
+   * Typically this is needed when accessing surfaces outside WAYLAND handlers.
+   */
+  static GHOST_WindowWayland *from_surface_find(const wl_surface *surface);
+  /**
+   * Use direct access when from WAYLAND handlers.
+   */
+  static const GHOST_WindowWayland *from_surface(const wl_surface *surface);
+  static GHOST_WindowWayland *from_surface_mut(wl_surface *surface);
+
+  /* WAYLAND window-level functions. */
+
+  GHOST_TSuccess close();
+  GHOST_TSuccess activate();
+  GHOST_TSuccess deactivate();
+  GHOST_TSuccess notify_size();
+
+  /* WAYLAND utility functions. */
+
+  bool outputs_enter(output_t *reg_output);
+  bool outputs_leave(output_t *reg_output);
+  bool outputs_enter_wl(const struct wl_output *output);
+  bool outputs_leave_wl(const struct wl_output *output);
+
+  bool outputs_changed_update_scale();
 
  private:
   GHOST_SystemWayland *m_system;

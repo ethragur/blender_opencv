@@ -515,12 +515,12 @@ void ED_object_modifier_copy_to_object(bContext *C,
   DEG_relations_tag_update(bmain);
 }
 
-bool ED_object_modifier_convert(ReportList *UNUSED(reports),
-                                Main *bmain,
-                                Depsgraph *depsgraph,
-                                ViewLayer *view_layer,
-                                Object *ob,
-                                ModifierData *md)
+bool ED_object_modifier_convert_psys_to_mesh(ReportList *UNUSED(reports),
+                                             Main *bmain,
+                                             Depsgraph *depsgraph,
+                                             ViewLayer *view_layer,
+                                             Object *ob,
+                                             ModifierData *md)
 {
   int cvert = 0;
 
@@ -1608,7 +1608,7 @@ void OBJECT_OT_modifier_apply_as_shapekey(wmOperatorType *ot)
 /** \} */
 
 /* ------------------------------------------------------------------- */
-/** \name Convert Modifier Operator
+/** \name Convert Particle System Modifier to Mesh Operator
  * \{ */
 
 static int modifier_convert_exec(bContext *C, wmOperator *op)
@@ -1618,16 +1618,10 @@ static int modifier_convert_exec(bContext *C, wmOperator *op)
   ViewLayer *view_layer = CTX_data_view_layer(C);
   Object *ob = ED_object_active_context(C);
   ModifierData *md = edit_modifier_property_get(op, ob, 0);
-  const ModifierTypeInfo *mti = BKE_modifier_get_info((ModifierType)md->type);
-  const bool do_merge_customdata = RNA_boolean_get(op->ptr, "merge_customdata");
 
-  if (!md || !ED_object_modifier_convert(op->reports, bmain, depsgraph, view_layer, ob, md)) {
+  if (!md || !ED_object_modifier_convert_psys_to_mesh(
+                 op->reports, bmain, depsgraph, view_layer, ob, md)) {
     return OPERATOR_CANCELLED;
-  }
-
-  if (do_merge_customdata &&
-      (mti->type & (eModifierTypeType_Constructive | eModifierTypeType_Nonconstructive))) {
-    BKE_mesh_merge_customdata_for_apply_modifier((Mesh *)ob->data);
   }
 
   DEG_id_tag_update(&ob->id, ID_RECALC_GEOMETRY);
@@ -1646,7 +1640,7 @@ static int modifier_convert_invoke(bContext *C, wmOperator *op, const wmEvent *U
 
 void OBJECT_OT_modifier_convert(wmOperatorType *ot)
 {
-  ot->name = "Convert Modifier";
+  ot->name = "Convert Particles to Mesh";
   ot->description = "Convert particles to a mesh object";
   ot->idname = "OBJECT_OT_modifier_convert";
 
@@ -1657,13 +1651,6 @@ void OBJECT_OT_modifier_convert(wmOperatorType *ot)
   /* flags */
   ot->flag = OPTYPE_REGISTER | OPTYPE_UNDO | OPTYPE_INTERNAL;
   edit_modifier_properties(ot);
-
-  RNA_def_boolean(
-      ot->srna,
-      "merge_customdata",
-      true,
-      "Merge UV's",
-      "Merge UV coordinates that share a vertex to account for imprecision in some modifiers");
 }
 
 /** \} */

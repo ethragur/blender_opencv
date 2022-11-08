@@ -106,7 +106,7 @@ void ED_view3d_dist_range_get(const View3D *v3d, float r_dist_range[2])
   r_dist_range[1] = v3d->clip_end * 10.0f;
 }
 
-bool ED_view3d_clip_range_get(Depsgraph *depsgraph,
+bool ED_view3d_clip_range_get(const Depsgraph *depsgraph,
                               const View3D *v3d,
                               const RegionView3D *rv3d,
                               float *r_clipsta,
@@ -633,7 +633,7 @@ bool ED_view3d_camera_autokey(const Scene *scene,
                               const bool do_translate)
 {
   if (autokeyframe_cfra_can_key(scene, id_key)) {
-    const float cfra = (float)CFRA;
+    const float cfra = (float)scene->r.cfra;
     ListBase dsources = {NULL, NULL};
 
     /* add data-source override for the camera object */

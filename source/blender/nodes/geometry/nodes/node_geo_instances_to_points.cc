@@ -40,9 +40,9 @@ static void convert_instances_to_points(GeometrySet &geometry_set,
   const InstancesComponent &instances = *geometry_set.get_component_for_read<InstancesComponent>();
 
   GeometryComponentFieldContext field_context{instances, ATTR_DOMAIN_INSTANCE};
-  const int domain_size = instances.attribute_domain_size(ATTR_DOMAIN_INSTANCE);
+  const int domain_num = instances.attribute_domain_num(ATTR_DOMAIN_INSTANCE);
 
-  fn::FieldEvaluator evaluator{field_context, domain_size};
+  fn::FieldEvaluator evaluator{field_context, domain_num};
   evaluator.set_selection(std::move(selection_field));
   evaluator.add(std::move(position_field));
   evaluator.add(std::move(radius_field));
@@ -59,7 +59,7 @@ static void convert_instances_to_points(GeometrySet &geometry_set,
 
   const VArray<float3> &positions = evaluator.get_evaluated<float3>(0);
   copy_attribute_to_points(positions, selection, {(float3 *)pointcloud->co, pointcloud->totpoint});
-  const VArray<float> &radii = evaluator.get_evaluated<float>(1);
+  const VArray<float> radii = evaluator.get_evaluated<float>(1);
   copy_attribute_to_points(radii, selection, {pointcloud->radius, pointcloud->totpoint});
 
   Map<AttributeIDRef, AttributeKind> attributes_to_propagate;
