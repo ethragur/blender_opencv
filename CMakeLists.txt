@@ -301,7 +301,7 @@ endif()
 # Modifiers
 option(WITH_MOD_FLUID           "Enable Mantaflow Fluid Simulation Framework" ON)
 option(WITH_MOD_REMESH          "Enable Remesh Modifier" ON)
-option(WITH_MOD_OCEANSIM        "Enable Ocean Modifier" ON)
+option(WITH_MOD_OCEANSIM        "Enable Ocean Modifier" OFF)
 
 # Image format support
 option(WITH_OPENIMAGEIO         "Enable OpenImageIO Support (http://www.openimageio.org)" ON)
