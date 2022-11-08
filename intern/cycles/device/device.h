@@ -29,6 +29,7 @@ class DeviceQueue;
 class Progress;
 class CPUKernels;
 class CPUKernelThreadGlobals;
+class Scene;
 
 /* Device Types */
 
@@ -65,6 +66,7 @@ class DeviceInfo {
   bool display_device;        /* GPU is used as a display device. */
   bool has_nanovdb;           /* Support NanoVDB volumes. */
   bool has_osl;               /* Support Open Shading Language. */
+  bool has_guiding;           /* Support path guiding. */
   bool has_profiling;         /* Supports runtime collection of profiling info. */
   bool has_peer_memory;       /* GPU has P2P access to memory of another GPU. */
   bool has_gpu_queue;         /* Device supports GPU queue. */
@@ -83,6 +85,7 @@ class DeviceInfo {
     display_device = false;
     has_nanovdb = false;
     has_osl = false;
+    has_guiding = false;
     has_profiling = false;
     has_peer_memory = false;
     has_gpu_queue = false;
@@ -186,6 +189,11 @@ class Device {
     return 0;
   }
 
+  /* Called after kernel texture setup, and prior to integrator state setup. */
+  virtual void optimize_for_scene(Scene * /*scene*/)
+  {
+  }
+
   virtual bool is_resident(device_ptr /*key*/, Device *sub_device)
   {
     /* Memory is always resident if this is not a multi device, regardless of whether the pointer
@@ -209,6 +217,15 @@ class Device {
   virtual bool should_use_graphics_interop()
   {
     return false;
+  }
+
+  /* Guiding */
+
+  /* Returns path guiding device handle. */
+  virtual void *get_guiding_device() const
+  {
+    LOG(ERROR) << "Request guiding field from a device which does not support it.";
+    return nullptr;
   }
 
   /* Buffer denoising. */

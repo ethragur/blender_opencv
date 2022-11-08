@@ -11,6 +11,8 @@
 #include "BLI_math_vector.h"
 #include "BLI_utildefines.h"
 
+#include "BLT_translation.h"
+
 #include "DNA_defaults.h"
 #include "DNA_gpencil_modifier_types.h"
 #include "DNA_gpencil_types.h"
@@ -62,8 +64,8 @@ static float calc_point_weight_by_distance(Object *ob,
 {
   float weight;
   float gvert[3];
-  mul_v3_m4v3(gvert, ob->obmat, &pt->x);
-  float dist = len_v3v3(mmd->object->obmat[3], gvert);
+  mul_v3_m4v3(gvert, ob->object_to_world, &pt->x);
+  float dist = len_v3v3(mmd->object->object_to_world[3], gvert);
 
   if (dist > dist_max) {
     weight = 1.0f;
@@ -226,7 +228,7 @@ static void panelRegister(ARegionType *region_type)
 }
 
 GpencilModifierTypeInfo modifierType_Gpencil_WeightProximity = {
-    /* name */ "Vertex Weight Proximity",
+    /* name */ N_("Vertex Weight Proximity"),
     /* structName */ "WeightProxGpencilModifierData",
     /* structSize */ sizeof(WeightProxGpencilModifierData),
     /* type */ eGpencilModifierTypeType_Gpencil,

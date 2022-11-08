@@ -29,10 +29,8 @@ namespace blender::eevee {
 void Camera::init()
 {
   const Object *camera_eval = inst_.camera_eval_object;
-  synced_ = false;
-  data_.swap();
 
-  CameraData &data = data_.current();
+  CameraData &data = data_;
 
   if (camera_eval) {
     const ::Camera *cam = reinterpret_cast<const ::Camera *>(camera_eval->data);
@@ -78,9 +76,7 @@ void Camera::sync()
 {
   const Object *camera_eval = inst_.camera_eval_object;
 
-  data_.swap();
-
-  CameraData &data = data_.current();
+  CameraData &data = data_;
 
   if (inst_.drw_view) {
     DRW_view_viewmat_get(inst_.drw_view, data.viewmat.ptr(), false);
@@ -89,7 +85,9 @@ void Camera::sync()
     DRW_view_winmat_get(inst_.drw_view, data.wininv.ptr(), true);
     DRW_view_persmat_get(inst_.drw_view, data.persmat.ptr(), false);
     DRW_view_persmat_get(inst_.drw_view, data.persinv.ptr(), true);
-    DRW_view_camtexco_get(inst_.drw_view, data.uv_scale);
+    /* TODO(fclem): Derive from rv3d instead. */
+    data.uv_scale = float2(1.0f);
+    data.uv_bias = float2(0.0f);
   }
   else if (inst_.render) {
     /* TODO(@fclem): Over-scan. */
@@ -110,6 +108,8 @@ void Camera::sync()
     data.wininv = data.winmat.inverted();
     data.persmat = data.winmat * data.viewmat;
     data.persinv = data.persmat.inverted();
+    data.uv_scale = float2(1.0f);
+    data.uv_bias = float2(0.0f);
   }
 
   if (camera_eval) {
@@ -142,14 +142,8 @@ void Camera::sync()
     data.equirect_scale = float2(0.0f);
   }
 
-  data_.current().push_update();
-
-  synced_ = true;
-
-  /* Detect changes in parameters. */
-  if (data_.current() != data_.previous()) {
-    inst_.sampling.reset();
-  }
+  data_.initialized = true;
+  data_.push_update();
 }
 
 /** \} */

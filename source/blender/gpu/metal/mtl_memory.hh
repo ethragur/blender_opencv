@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: GPL-2.0-or-later */
 
 #pragma once
 
@@ -23,7 +24,7 @@
  * The Metal Backend Memory manager is designed to provide an interface
  * for all other MTL_* modules where memory allocation is required.
  *
- * Different allocation strategies and datastructures are used depending
+ * Different allocation strategies and data-structures are used depending
  * on how the data is used by the backend. These aim to optimally handle
  * system memory and abstract away any complexity from the MTL_* modules
  * themselves.
@@ -40,7 +41,7 @@
  *    Each frame, the next scratch buffer is reset, then later flushed upon
  *    command buffer submission.
  *
- *    Note: This is allocated per-context due to allocations being tied
+ *    NOTE: This is allocated per-context due to allocations being tied
  *    to workload submissions and context-specific submissions.
  *
  *    Examples of scratch buffer usage are:
@@ -72,13 +73,15 @@
  *    to ensure they are not prematurely re-used before they have finished being
  *    used by the GPU.
  *
- *    Note: The MTLBufferPool is a global construct which can be fetched from anywhere.
+ *    NOTE: The MTLBufferPool is a global construct which can be fetched from anywhere.
  *
  *  Usage:
  *    MTLContext::get_global_memory_manager();  - static routine to fetch global memory manager.
  *
- *    gpu::MTLBuffer *allocate_buffer(size, is_cpu_visibile, bytes=nullptr)
- *    gpu::MTLBuffer *allocate_buffer_aligned(size, alignment, is_cpu_visibile, bytes=nullptr)
+ *    gpu::MTLBuffer *allocate(size, is_cpu_visibile)
+ *    gpu::MTLBuffer *allocate_aligned(size, alignment, is_cpu_visibile)
+ *    gpu::MTLBuffer *allocate_with_data(size, is_cpu_visibile, data_ptr)
+ *    gpu::MTLBuffer *allocate_aligned_with_data(size, alignment, is_cpu_visibile, data_ptr)
  */
 
 /* Debug memory statistics: Disabled by Macro rather than guarded for
@@ -107,8 +110,8 @@ class MTLBuffer {
   /* Metal resource. */
   id<MTLBuffer> metal_buffer_;
 
-  /* Host-visible mapped-memory pointer. Behaviour depends on buffer type:
-   * - Shared buffers: pointer represents base address of MTLBuffer whose data
+  /* Host-visible mapped-memory pointer. Behavior depends on buffer type:
+   * - Shared buffers: pointer represents base address of #MTLBuffer whose data
    *                   access has shared access by both the CPU and GPU on
    *                   Unified Memory Architectures (UMA).
    * - Managed buffer: Host-side mapped buffer region for CPU (Host) access. Managed buffers
@@ -270,7 +273,7 @@ struct CompareMTLBuffer {
  *  when the next MTLSafeFreeList is created, to allow the existing pool to be released once
  *  the reference count hits zero after submitted command buffers complete.
  *
- * Note: the Metal API independently tracks resources used by command buffers for the purpose of
+ * NOTE: the Metal API independently tracks resources used by command buffers for the purpose of
  * keeping resources alive while in-use by the driver and CPU, however, this differs from the
  * MTLSafeFreeList mechanism in the Metal backend, which exists for the purpose of allowing
  * previously allocated MTLBuffer resources to be re-used. This allows us to save on the expensive
@@ -337,27 +340,27 @@ class MTLBufferPool {
 
  private:
   /* Memory statistics. */
-  long long int total_allocation_bytes_ = 0;
+  int64_t total_allocation_bytes_ = 0;
 
 #if MTL_DEBUG_MEMORY_STATISTICS == 1
   /* Debug statistics. */
   std::atomic<int> per_frame_allocation_count_;
-  std::atomic<long long int> allocations_in_pool_;
-  std::atomic<long long int> buffers_in_pool_;
+  std::atomic<int64_t> allocations_in_pool_;
+  std::atomic<int64_t> buffers_in_pool_;
 #endif
 
   /* Metal resources. */
   bool ensure_initialised_ = false;
   id<MTLDevice> device_ = nil;
 
-  /* The buffer selection aims to pick a buffer which meets the minimum size requierments.
+  /* The buffer selection aims to pick a buffer which meets the minimum size requirements.
    * To do this, we keep an ordered set of all available buffers. If the buffer is larger than the
-   * desired allocation size, we check it aginst `mtl_buffer_size_threshold_factor_`, which defines
-   * what % larger than the original allocation the buffer can be.
+   * desired allocation size, we check it against `mtl_buffer_size_threshold_factor_`,
+   * which defines what % larger than the original allocation the buffer can be.
    * - A higher value results in greater re-use of previously allocated buffers of similar sizes.
-   * - A lower value may result in more dynamic allocations, but minimised memory usage for a given
+   * - A lower value may result in more dynamic allocations, but minimized memory usage for a given
    *   scenario.
-   * The current value of 1.26 is calibrated for optimal performance and memory utilisation. */
+   * The current value of 1.26 is calibrated for optimal performance and memory utilization. */
   static constexpr float mtl_buffer_size_threshold_factor_ = 1.26;
 
   /* Buffer pools using MTLResourceOptions as key for allocation type.
@@ -388,11 +391,13 @@ class MTLBufferPool {
   void init(id<MTLDevice> device);
   ~MTLBufferPool();
 
-  gpu::MTLBuffer *allocate_buffer(uint64_t size, bool cpu_visible, const void *bytes = nullptr);
-  gpu::MTLBuffer *allocate_buffer_aligned(uint64_t size,
-                                          uint alignment,
-                                          bool cpu_visible,
-                                          const void *bytes = nullptr);
+  gpu::MTLBuffer *allocate(uint64_t size, bool cpu_visible);
+  gpu::MTLBuffer *allocate_aligned(uint64_t size, uint alignment, bool cpu_visible);
+  gpu::MTLBuffer *allocate_with_data(uint64_t size, bool cpu_visible, const void *data = nullptr);
+  gpu::MTLBuffer *allocate_aligned_with_data(uint64_t size,
+                                             uint alignment,
+                                             bool cpu_visible,
+                                             const void *data = nullptr);
   bool free_buffer(gpu::MTLBuffer *buffer);
 
   /* Flush MTLSafeFreeList buffers, for completed lists in `completed_safelist_queue_`,
@@ -453,7 +458,8 @@ class MTLScratchBufferManager {
   MTLScratchBufferManager(MTLContext &context) : context_(context){};
   ~MTLScratchBufferManager();
 
-  /* Explicit initialisation and freeing of resources. Init must occur after device creation. */
+  /* Explicit initialization and freeing of resources.
+   * Initialization must occur after device creation. */
   void init();
   void free();
 

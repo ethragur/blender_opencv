@@ -31,7 +31,7 @@ static LineartEdge *lineart_line_get_connected(LineartBoundingArea *ba,
   for (int i = 0; i < ba->line_count; i++) {
     LineartEdge *n_e = ba->linked_lines[i];
 
-    if ((!(n_e->flags & LRT_EDGE_FLAG_ALL_TYPE)) || (n_e->flags & LRT_EDGE_FLAG_CHAIN_PICKED)) {
+    if (!(n_e->flags & LRT_EDGE_FLAG_ALL_TYPE) || (n_e->flags & LRT_EDGE_FLAG_CHAIN_PICKED)) {
       continue;
     }
 
@@ -186,7 +186,7 @@ void MOD_lineart_chain_feature_lines(LineartData *ld)
 
   LRT_ITER_ALL_LINES_BEGIN
   {
-    if ((!(e->flags & LRT_EDGE_FLAG_ALL_TYPE)) || (e->flags & LRT_EDGE_FLAG_CHAIN_PICKED)) {
+    if (!(e->flags & LRT_EDGE_FLAG_ALL_TYPE) || (e->flags & LRT_EDGE_FLAG_CHAIN_PICKED)) {
       LRT_ITER_ALL_LINES_NEXT
       continue;
     }
@@ -725,8 +725,9 @@ void MOD_lineart_chain_split_for_fixed_occlusion(LineartData *ld)
       }
     }
   }
-  /* Get rid of those very short "zig-zag" lines that jumps around visibility. */
-  MOD_lineart_chain_discard_short(ld, DBL_EDGE_LIM);
+
+  MOD_lineart_chain_discard_unused(ld, DBL_EDGE_LIM, ld->conf.max_occlusion_level);
+
   LISTBASE_FOREACH (LineartEdgeChain *, iec, &ld->chains) {
     lineart_bounding_area_link_chain(ld, iec);
   }
@@ -808,8 +809,8 @@ static LineartChainRegisterEntry *lineart_chain_get_closest_cre(LineartData *ld,
       if (!ld->conf.fuzzy_everything) {
         if (ld->conf.fuzzy_intersections) {
           /* If none of those are intersection lines... */
-          if ((!(cre->ec->type & LRT_EDGE_FLAG_INTERSECTION)) &&
-              (!(ec->type & LRT_EDGE_FLAG_INTERSECTION))) {
+          if (!(cre->ec->type & LRT_EDGE_FLAG_INTERSECTION) &&
+              !(ec->type & LRT_EDGE_FLAG_INTERSECTION)) {
             continue; /* We don't want to chain along different objects at the moment. */
           }
         }
@@ -1018,12 +1019,14 @@ float MOD_lineart_chain_compute_length(LineartEdgeChain *ec)
   return offset_accum;
 }
 
-void MOD_lineart_chain_discard_short(LineartData *ld, const float threshold)
+void MOD_lineart_chain_discard_unused(LineartData *ld,
+                                      const float threshold,
+                                      uint8_t max_occlusion)
 {
   LineartEdgeChain *ec, *next_ec;
   for (ec = ld->chains.first; ec; ec = next_ec) {
     next_ec = ec->next;
-    if (MOD_lineart_chain_compute_length(ec) < threshold) {
+    if (ec->level > max_occlusion || MOD_lineart_chain_compute_length(ec) < threshold) {
       BLI_remlink(&ld->chains, ec);
     }
   }
@@ -1048,6 +1051,38 @@ void MOD_lineart_chain_clear_picked_flag(LineartCache *lc)
   }
 }
 
+LineartElementLinkNode *lineart_find_matching_eln_obj(ListBase *elns, struct Object *obj)
+{
+  LISTBASE_FOREACH (LineartElementLinkNode *, eln, elns) {
+    if (eln->object_ref == obj) {
+      return eln;
+    }
+  }
+  return NULL;
+}
+
+void MOD_lineart_finalize_chains(LineartData *ld)
+{
+  LISTBASE_FOREACH (LineartEdgeChain *, ec, &ld->chains) {
+    if (ELEM(ec->type,
+             LRT_EDGE_FLAG_INTERSECTION,
+             LRT_EDGE_FLAG_PROJECTED_SHADOW,
+             LRT_EDGE_FLAG_LIGHT_CONTOUR)) {
+      continue;
+    }
+    LineartElementLinkNode *eln = lineart_find_matching_eln_obj(&ld->geom.vertex_buffer_pointers,
+                                                                ec->object_ref);
+    BLI_assert(eln != NULL);
+    if (LIKELY(eln)) {
+      LISTBASE_FOREACH (LineartEdgeChainItem *, eci, &ec->chain) {
+        if (eci->index > eln->global_index_offset) {
+          eci->index -= eln->global_index_offset;
+        }
+      }
+    }
+  }
+}
+
 void MOD_lineart_smooth_chains(LineartData *ld, float tolerance)
 {
   LISTBASE_FOREACH (LineartEdgeChain *, ec, &ld->chains) {
@@ -1057,7 +1092,7 @@ void MOD_lineart_smooth_chains(LineartData *ld, float tolerance)
            eci = next_eci) {
         LineartEdgeChainItem *eci2, *eci3, *eci4;
 
-        if ((!(eci2 = eci->next)) || (!(eci3 = eci2->next))) {
+        if (!(eci2 = eci->next) || !(eci3 = eci2->next)) {
           /* Not enough points to simplify. */
           next_eci = eci->next;
           continue;

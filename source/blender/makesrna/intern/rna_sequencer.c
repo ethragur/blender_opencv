@@ -324,7 +324,7 @@ static int rna_Sequence_frame_final_end_get(PointerRNA *ptr)
   return SEQ_time_right_handle_frame_get(scene, (Sequence *)ptr->data);
 }
 
-static void rna_Sequence_start_frame_final_set(PointerRNA *ptr, float value)
+static void rna_Sequence_start_frame_final_set(PointerRNA *ptr, int value)
 {
   Sequence *seq = (Sequence *)ptr->data;
   Scene *scene = (Scene *)ptr->owner_id;
@@ -346,7 +346,7 @@ static void rna_Sequence_end_frame_final_set(PointerRNA *ptr, int value)
   SEQ_relations_invalidate_cache_composite(scene, seq);
 }
 
-static void rna_Sequence_start_frame_set(PointerRNA *ptr, int value)
+static void rna_Sequence_start_frame_set(PointerRNA *ptr, float value)
 {
   Sequence *seq = (Sequence *)ptr->data;
   Scene *scene = (Scene *)ptr->owner_id;
@@ -778,7 +778,7 @@ static void rna_Sequence_filepath_get(PointerRNA *ptr, char *value)
 {
   Sequence *seq = (Sequence *)(ptr->data);
 
-  BLI_join_dirfile(value, FILE_MAX, seq->strip->dir, seq->strip->stripdata->name);
+  BLI_path_join(value, FILE_MAX, seq->strip->dir, seq->strip->stripdata->name);
 }
 
 static int rna_Sequence_filepath_length(PointerRNA *ptr)
@@ -786,7 +786,7 @@ static int rna_Sequence_filepath_length(PointerRNA *ptr)
   Sequence *seq = (Sequence *)(ptr->data);
   char path[FILE_MAX];
 
-  BLI_join_dirfile(path, sizeof(path), seq->strip->dir, seq->strip->stripdata->name);
+  BLI_path_join(path, sizeof(path), seq->strip->dir, seq->strip->stripdata->name);
   return strlen(path);
 }
 
@@ -804,7 +804,7 @@ static void rna_Sequence_proxy_filepath_get(PointerRNA *ptr, char *value)
 {
   StripProxy *proxy = (StripProxy *)(ptr->data);
 
-  BLI_join_dirfile(value, FILE_MAX, proxy->dir, proxy->file);
+  BLI_path_join(value, FILE_MAX, proxy->dir, proxy->file);
 }
 
 static int rna_Sequence_proxy_filepath_length(PointerRNA *ptr)
@@ -812,7 +812,7 @@ static int rna_Sequence_proxy_filepath_length(PointerRNA *ptr)
   StripProxy *proxy = (StripProxy *)(ptr->data);
   char path[FILE_MAX];
 
-  BLI_join_dirfile(path, sizeof(path), proxy->dir, proxy->file);
+  BLI_path_join(path, sizeof(path), proxy->dir, proxy->file);
   return strlen(path);
 }
 
@@ -1754,12 +1754,12 @@ static void rna_def_color_balance(BlenderRNA *brna)
 
   prop = RNA_def_property(srna, "invert_gain", PROP_BOOLEAN, PROP_NONE);
   RNA_def_property_boolean_sdna(prop, NULL, "flag", SEQ_COLOR_BALANCE_INVERSE_GAIN);
-  RNA_def_property_ui_text(prop, "Inverse Gain", "Invert the gain color`");
+  RNA_def_property_ui_text(prop, "Inverse Gain", "Invert the gain color");
   RNA_def_property_update(prop, NC_SCENE | ND_SEQUENCER, "rna_SequenceColorBalance_update");
 
   prop = RNA_def_property(srna, "invert_slope", PROP_BOOLEAN, PROP_NONE);
   RNA_def_property_boolean_sdna(prop, NULL, "flag", SEQ_COLOR_BALANCE_INVERSE_SLOPE);
-  RNA_def_property_ui_text(prop, "Inverse Slope", "Invert the slope color`");
+  RNA_def_property_ui_text(prop, "Inverse Slope", "Invert the slope color");
   RNA_def_property_update(prop, NC_SCENE | ND_SEQUENCER, "rna_SequenceColorBalance_update");
 
   prop = RNA_def_property(srna, "invert_offset", PROP_BOOLEAN, PROP_NONE);
@@ -2247,6 +2247,7 @@ static void rna_def_editor(BlenderRNA *brna)
   prop = RNA_def_property(srna, "proxy_storage", PROP_ENUM, PROP_NONE);
   RNA_def_property_enum_items(prop, editing_storage_items);
   RNA_def_property_ui_text(prop, "Proxy Storage", "How to store proxies for this project");
+  RNA_def_property_translation_context(prop, BLT_I18NCONTEXT_ID_SEQUENCE);
   RNA_def_property_update(prop, NC_SPACE | ND_SPACE_SEQUENCER, "rna_SequenceEditor_update_cache");
 
   prop = RNA_def_property(srna, "proxy_dir", PROP_STRING, PROP_DIRPATH);
@@ -2892,6 +2893,7 @@ static void rna_def_wipe(StructRNA *srna)
   RNA_def_property_enum_sdna(prop, NULL, "forward");
   RNA_def_property_enum_items(prop, wipe_direction_items);
   RNA_def_property_ui_text(prop, "Direction", "Wipe direction");
+  RNA_def_property_translation_context(prop, BLT_I18NCONTEXT_ID_SEQUENCE);
   RNA_def_property_update(prop, NC_SCENE | ND_SEQUENCER, "rna_Sequence_invalidate_raw_update");
 
   prop = RNA_def_property(srna, "transition_type", PROP_ENUM, PROP_NONE);

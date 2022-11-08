@@ -28,6 +28,7 @@
 #include "SEQ_time.h"
 
 #include "transform.h"
+#include "transform_convert.h"
 #include "transform_snap.h"
 
 typedef struct TransSeqSnapData {
@@ -202,8 +203,10 @@ static void seq_snap_target_points_build(Scene *scene,
     i += 2;
 
     if (snap_mode & SEQ_SNAP_TO_STRIP_HOLD) {
-      int content_start = min_ii(SEQ_time_right_handle_frame_get(scene, seq), seq->start);
-      int content_end = max_ii(SEQ_time_left_handle_frame_get(scene, seq), seq->start + seq->len);
+      int content_start = min_ii(SEQ_time_left_handle_frame_get(scene, seq),
+                                 SEQ_time_start_frame_get(seq));
+      int content_end = max_ii(SEQ_time_right_handle_frame_get(scene, seq),
+                               SEQ_time_content_end_frame_get(scene, seq));
       /* Effects and single image strips produce incorrect content length. Skip these strips. */
       if ((seq->type & SEQ_TYPE_EFFECT) != 0 || seq->len == 1) {
         content_start = SEQ_time_left_handle_frame_get(scene, seq);
@@ -244,7 +247,7 @@ static int seq_snap_threshold_get_frame_distance(const TransInfo *t)
 
 TransSeqSnapData *transform_snap_sequencer_data_alloc(const TransInfo *t)
 {
-  if (t->data_type == TC_SEQ_IMAGE_DATA) {
+  if (t->data_type == &TransConvertType_SequencerImage) {
     return NULL;
   }
 
@@ -375,7 +378,7 @@ bool ED_transform_snap_sequencer_to_closest_strip_calc(Scene *scene,
   t.scene = scene;
   t.region = region;
   t.values[0] = 0;
-  t.data_type = TC_SEQ_DATA;
+  t.data_type = &TransConvertType_Sequencer;
 
   t.tsnap.mode = SEQ_tool_settings_snap_mode_get(scene);
   *r_snap_distance = transform_snap_sequencer_to_closest_strip_ex(&t, frame_1, frame_2);

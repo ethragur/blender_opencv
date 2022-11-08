@@ -94,7 +94,7 @@ void WM_init_state_maximized_set(void);
 void WM_init_state_start_with_console_set(bool value);
 void WM_init_window_focus_set(bool do_it);
 void WM_init_native_pixels(bool do_it);
-void WM_init_tablet_api(void);
+void WM_init_input_devices(void);
 
 /**
  * Initialize Blender and load the startup file & preferences
@@ -119,6 +119,13 @@ void WM_init_splash(struct bContext *C);
 
 void WM_init_opengl(void);
 
+/**
+ * Return an identifier for the underlying GHOST implementation.
+ * \warning Use of this function should be limited & never for compatibility checks.
+ * see: #GHOST_ISystem::getSystemBackend for details.
+ */
+const char *WM_ghost_backend(void);
+
 void WM_check(struct bContext *C);
 void WM_reinit_gizmomap_all(struct Main *bmain);
 
@@ -134,7 +141,24 @@ void WM_window_pixel_sample_read(const wmWindowManager *wm,
                                  const int pos[2],
                                  float r_col[3]);
 
+/**
+ * Read pixels from the front-buffer (fast).
+ *
+ * \note Internally this depends on the front-buffer state,
+ * for a slower but more reliable method of reading pixels, use #WM_window_pixels_read_offscreen.
+ * Fast pixel access may be preferred for file-save thumbnails.
+ *
+ * \warning Drawing (swap-buffers) immediately before calling this function causes
+ * the front-buffer state to be invalid under some EGL configurations.
+ */
 uint *WM_window_pixels_read(struct wmWindowManager *wm, struct wmWindow *win, int r_size[2]);
+/**
+ * Draw the window & read pixels from an off-screen buffer (slower than #WM_window_pixels_read).
+ *
+ * \note This is needed because the state of the front-buffer may be damaged
+ * (see in-line code comments for details).
+ */
+uint *WM_window_pixels_read_offscreen(struct bContext *C, struct wmWindow *win, int r_size[2]);
 
 /**
  * Support for native pixel size
@@ -317,6 +341,18 @@ void WM_cursor_warp(struct wmWindow *win, int x, int y);
 
 /* Handlers. */
 
+typedef enum eWM_EventHandlerFlag {
+  /** After this handler all others are ignored. */
+  WM_HANDLER_BLOCKING = (1 << 0),
+  /** Handler accepts double key press events. */
+  WM_HANDLER_ACCEPT_DBL_CLICK = (1 << 1),
+
+  /* Internal. */
+  /** Handler tagged to be freed in #wm_handlers_do(). */
+  WM_HANDLER_DO_FREE = (1 << 7),
+} eWM_EventHandlerFlag;
+ENUM_OPERATORS(eWM_EventHandlerFlag, WM_HANDLER_DO_FREE)
+
 typedef bool (*EventHandlerPoll)(const ARegion *region, const struct wmEvent *event);
 struct wmEventHandler_Keymap *WM_event_add_keymap_handler(ListBase *handlers, wmKeyMap *keymap);
 struct wmEventHandler_Keymap *WM_event_add_keymap_handler_poll(ListBase *handlers,
@@ -383,7 +419,7 @@ struct wmEventHandler_UI *WM_event_add_ui_handler(const struct bContext *C,
                                                   wmUIHandlerFunc handle_fn,
                                                   wmUIHandlerRemoveFunc remove_fn,
                                                   void *user_data,
-                                                  char flag);
+                                                  eWM_EventHandlerFlag flag);
 
 /**
  * Return the first modal operator of type \a ot or NULL.
@@ -425,15 +461,6 @@ void WM_event_modal_handler_region_replace(wmWindow *win,
  * Called on exit or remove area, only here call cancel callback.
  */
 void WM_event_remove_handlers(struct bContext *C, ListBase *handlers);
-
-/* handler flag */
-enum {
-  WM_HANDLER_BLOCKING = (1 << 0),         /* after this handler all others are ignored */
-  WM_HANDLER_ACCEPT_DBL_CLICK = (1 << 1), /* handler accepts double key press events */
-
-  /* internal */
-  WM_HANDLER_DO_FREE = (1 << 7), /* handler tagged to be freed in wm_handlers_do() */
-};
 
 struct wmEventHandler_Dropbox *WM_event_add_dropbox_handler(ListBase *handlers,
                                                             ListBase *dropboxes);
@@ -844,7 +871,7 @@ void WM_operator_properties_select_action(struct wmOperatorType *ot,
                                           int default_action,
                                           bool hide_gui);
 /**
- * Only #SELECT / #DESELECT.
+ * Only for select/de-select.
  */
 void WM_operator_properties_select_action_simple(struct wmOperatorType *ot,
                                                  int default_action,
@@ -1214,10 +1241,24 @@ int WM_operator_flag_only_pass_through_on_press(int retval, const struct wmEvent
 /* Drag and drop. */
 
 /**
- * Note that the pointer should be valid allocated and not on stack.
+ * Start dragging immediately with the given data.
+ * Note that \a poin should be valid allocated and not on stack.
  */
-struct wmDrag *WM_event_start_drag(
+void WM_event_start_drag(
     struct bContext *C, int icon, int type, void *poin, double value, unsigned int flags);
+/**
+ * Create and fill the dragging data, but don't start dragging just yet (unlike
+ * #WM_event_start_drag()). Must be followed up by #WM_event_start_prepared_drag(), otherwise the
+ * returned pointer will leak memory.
+ *
+ * Note that \a poin should be valid allocated and not on stack.
+ */
+wmDrag *WM_drag_data_create(
+    struct bContext *C, int icon, int type, void *poin, double value, unsigned int flags);
+/**
+ * Invoke dragging using the given \a drag data.
+ */
+void WM_event_start_prepared_drag(struct bContext *C, wmDrag *drag);
 void WM_event_drag_image(struct wmDrag *, struct ImBuf *, float scale);
 void WM_drag_free(struct wmDrag *drag);
 void WM_drag_data_free(int dragtype, void *poin);
@@ -1317,17 +1358,18 @@ void wmOrtho2_pixelspace(float x, float y);
 void wmGetProjectionMatrix(float mat[4][4], const struct rcti *winrct);
 
 /* threaded Jobs Manager */
-enum {
+typedef enum eWM_JobFlag {
   WM_JOB_PRIORITY = (1 << 0),
   WM_JOB_EXCL_RENDER = (1 << 1),
   WM_JOB_PROGRESS = (1 << 2),
-};
+} eWM_JobFlag;
+ENUM_OPERATORS(enum eWM_JobFlag, WM_JOB_PROGRESS);
 
 /**
  * Identifying jobs by owner alone is unreliable, this isn't saved,
  * order can change (keep 0 for 'any').
  */
-enum {
+typedef enum eWM_JobType {
   WM_JOB_TYPE_ANY = 0,
   WM_JOB_TYPE_COMPOSITE,
   WM_JOB_TYPE_RENDER,
@@ -1359,7 +1401,7 @@ enum {
   WM_JOB_TYPE_SEQ_DRAG_DROP_PREVIEW,
   /* add as needed, bake, seq proxy build
    * if having hard coded values is a problem */
-};
+} eWM_JobType;
 
 /**
  * \return current job or adds new job, but doesn't run it.
@@ -1371,8 +1413,8 @@ struct wmJob *WM_jobs_get(struct wmWindowManager *wm,
                           struct wmWindow *win,
                           const void *owner,
                           const char *name,
-                          int flag,
-                          int job_type);
+                          eWM_JobFlag flag,
+                          eWM_JobType job_type);
 
 /**
  * Returns true if job runs, for UI (progress) indicators.
@@ -1394,8 +1436,8 @@ void WM_jobs_timer(struct wmJob *, double timestep, unsigned int note, unsigned 
 void WM_jobs_delay_start(struct wmJob *, double delay_time);
 
 typedef void (*wm_jobs_start_callback)(void *custom_data,
-                                       short *stop,
-                                       short *do_update,
+                                       bool *stop,
+                                       bool *do_update,
                                        float *progress);
 void WM_jobs_callbacks(struct wmJob *,
                        wm_jobs_start_callback startjob,
@@ -1425,7 +1467,7 @@ void WM_jobs_stop(struct wmWindowManager *wm, const void *owner, void *startjob)
  */
 void WM_jobs_kill(struct wmWindowManager *wm,
                   void *owner,
-                  void (*)(void *, short int *, short int *, float *));
+                  void (*)(void *, bool *, bool *, float *));
 /**
  * Wait until every job ended.
  */
@@ -1527,10 +1569,10 @@ void WM_event_print(const struct wmEvent *event);
 bool WM_event_is_modal_drag_exit(const struct wmEvent *event,
                                  short init_event_type,
                                  short init_event_val);
-bool WM_event_is_last_mousemove(const struct wmEvent *event);
 bool WM_event_is_mouse_drag(const struct wmEvent *event);
 bool WM_event_is_mouse_drag_or_press(const wmEvent *event);
 int WM_event_drag_direction(const wmEvent *event);
+char WM_event_utf8_to_ascii(const struct wmEvent *event) ATTR_NONNULL(1) ATTR_WARN_UNUSED_RESULT;
 
 /**
  * Detect motion between selection (callers should only use this for selection picking),

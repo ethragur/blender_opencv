@@ -264,33 +264,51 @@ MetalDeviceQueue::~MetalDeviceQueue()
   }
 }
 
-int MetalDeviceQueue::num_concurrent_states(const size_t /*state_size*/) const
+int MetalDeviceQueue::num_concurrent_states(const size_t state_size) const
 {
-  /* METAL_WIP */
-  /* TODO: compute automatically. */
-  /* TODO: must have at least num_threads_per_block. */
-  int result = 1048576;
-  if (metal_device_->device_vendor == METAL_GPU_AMD) {
-    result *= 2;
+  static int result = 0;
+  if (result) {
+    return result;
   }
-  else if (metal_device_->device_vendor == METAL_GPU_APPLE) {
+
+  result = 1048576;
+  if (metal_device_->device_vendor == METAL_GPU_APPLE) {
     result *= 4;
+
+    if (MetalInfo::get_apple_gpu_architecture(metal_device_->mtlDevice) == APPLE_M2) {
+      size_t system_ram = system_physical_ram();
+      size_t allocated_so_far = [metal_device_->mtlDevice currentAllocatedSize];
+      size_t max_recommended_working_set = [metal_device_->mtlDevice recommendedMaxWorkingSetSize];
+
+      /* Determine whether we can double the state count, and leave enough GPU-available memory
+       * (1/8 the system RAM or 1GB - whichever is largest). Enlarging the state size allows us to
+       * keep dispatch sizes high and minimize work submission overheads. */
+      size_t min_headroom = std::max(system_ram / 8, size_t(1024 * 1024 * 1024));
+      size_t total_state_size = result * state_size;
+      if (max_recommended_working_set - allocated_so_far - total_state_size * 2 >= min_headroom) {
+        result *= 2;
+        metal_printf("Doubling state count to exploit available RAM (new size = %d)\n", result);
+      }
+    }
+  }
+  else if (metal_device_->device_vendor == METAL_GPU_AMD) {
+    /* METAL_WIP */
+    /* TODO: compute automatically. */
+    /* TODO: must have at least num_threads_per_block. */
+    result *= 2;
   }
   return result;
 }
 
-int MetalDeviceQueue::num_concurrent_busy_states() const
+int MetalDeviceQueue::num_concurrent_busy_states(const size_t state_size) const
 {
-  /* METAL_WIP */
-  /* TODO: compute automatically. */
-  int result = 65536;
-  if (metal_device_->device_vendor == METAL_GPU_AMD) {
-    result *= 2;
-  }
-  else if (metal_device_->device_vendor == METAL_GPU_APPLE) {
-    result *= 4;
-  }
-  return result;
+  /* A 1:4 busy:total ratio gives best rendering performance, independent of total state count. */
+  return num_concurrent_states(state_size) / 4;
+}
+
+int MetalDeviceQueue::num_sort_partition_elements() const
+{
+  return MetalInfo::optimal_sort_partition_elements(metal_device_->mtlDevice);
 }
 
 void MetalDeviceQueue::init_execution()
@@ -359,7 +377,7 @@ bool MetalDeviceQueue::enqueue(DeviceKernel kernel,
   /* Prepare any non-pointer (i.e. plain-old-data) KernelParamsMetal data */
   /* The plain-old-data is contiguous, continuing to the end of KernelParamsMetal */
   size_t plain_old_launch_data_offset = offsetof(KernelParamsMetal, integrator_state) +
-                                        sizeof(IntegratorStateGPU);
+                                        offsetof(IntegratorStateGPU, sort_partition_divisor);
   size_t plain_old_launch_data_size = sizeof(KernelParamsMetal) - plain_old_launch_data_offset;
   memcpy(init_arg_buffer + globals_offsets + plain_old_launch_data_offset,
          (uint8_t *)&metal_device_->launch_params + plain_old_launch_data_offset,
@@ -416,7 +434,7 @@ bool MetalDeviceQueue::enqueue(DeviceKernel kernel,
 
   /* this relies on IntegratorStateGPU layout being contiguous device_ptrs  */
   const size_t pointer_block_end = offsetof(KernelParamsMetal, integrator_state) +
-                                   sizeof(IntegratorStateGPU);
+                                   offsetof(IntegratorStateGPU, sort_partition_divisor);
   for (size_t offset = 0; offset < pointer_block_end; offset += sizeof(device_ptr)) {
     int pointer_index = int(offset / sizeof(device_ptr));
     MetalDevice::MetalMem *mmem = *(

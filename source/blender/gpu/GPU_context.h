@@ -17,16 +17,18 @@
 extern "C" {
 #endif
 
-void GPU_backend_init(eGPUBackendType backend);
-void GPU_backend_exit(void);
-bool GPU_backend_supported(eGPUBackendType type);
-
+/* GPU back-ends abstract the differences between different APIs. #GPU_context_create
+ * automatically initializes the back-end, and #GPU_context_discard frees it when there
+ * are no more contexts. */
+bool GPU_backend_supported(void);
+void GPU_backend_type_selection_set(const eGPUBackendType backend);
+eGPUBackendType GPU_backend_type_selection_get(void);
 eGPUBackendType GPU_backend_get_type(void);
 
 /** Opaque type hiding blender::gpu::Context. */
 typedef struct GPUContext GPUContext;
 
-GPUContext *GPU_context_create(void *ghost_window);
+GPUContext *GPU_context_create(void *ghost_window, void *ghost_context);
 /**
  * To be called after #GPU_context_active_set(ctx_to_destroy).
  */

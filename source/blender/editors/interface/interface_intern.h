@@ -23,8 +23,10 @@ struct ARegion;
 struct AnimationEvalContext;
 struct CurveMapping;
 struct CurveProfile;
+struct IconTextOverlay;
 struct ID;
 struct ImBuf;
+struct Main;
 struct Scene;
 struct bContext;
 struct bContextStore;
@@ -274,6 +276,9 @@ struct uiBut {
   uiButPushedStateFunc pushed_state_func;
   const void *pushed_state_arg;
 
+  /** Little indicator (e.g., counter) displayed on top of some icons. */
+  struct IconTextOverlay icon_overlay_text;
+
   /* pointer back */
   uiBlock *block;
 };
@@ -306,6 +311,8 @@ typedef struct uiButSearch {
 
   uiButSearchCreateFn popup_create_fn;
   uiButSearchUpdateFn items_update_fn;
+  uiButSearchListenFn listen_fn;
+
   void *item_active;
 
   void *arg;
@@ -343,20 +350,12 @@ typedef struct uiButProgressbar {
   float progress;
 } uiButProgressbar;
 
-/** Derived struct for #UI_BTYPE_TREEROW. */
-typedef struct uiButTreeRow {
+typedef struct uiButViewItem {
   uiBut but;
 
-  uiTreeViewItemHandle *tree_item;
-  int indentation;
-} uiButTreeRow;
-
-/** Derived struct for #UI_BTYPE_GRID_TILE. */
-typedef struct uiButGridTile {
-  uiBut but;
-
-  uiGridViewItemHandle *view_item;
-} uiButGridTile;
+  /* C-Handle to the view item this button was created for. */
+  uiViewItemHandle *view_item;
+} uiButViewItem;
 
 /** Derived struct for #UI_BTYPE_HSVCUBE. */
 typedef struct uiButHSVCube {
@@ -476,6 +475,13 @@ typedef enum uiButtonGroupFlag {
   /** The buttons in this group are inside a panel header. */
   UI_BUTTON_GROUP_PANEL_HEADER = (1 << 1),
 } uiButtonGroupFlag;
+ENUM_OPERATORS(uiButtonGroupFlag, UI_BUTTON_GROUP_PANEL_HEADER);
+
+typedef struct uiBlockDynamicListener {
+  struct uiBlockDynamicListener *next, *prev;
+
+  void (*listener_func)(const struct wmRegionListenerParams *params);
+} uiBlockDynamicListener;
 
 struct uiBlock {
   uiBlock *next, *prev;
@@ -498,6 +504,8 @@ struct uiBlock {
    * Others are imaginable, e.g. table-views, grid-views, etc. These are stored here to support
    * state that is persistent over redraws (e.g. collapsed tree-view items). */
   ListBase views;
+
+  ListBase dynamic_listeners; /* #uiBlockDynamicListener */
 
   char name[UI_MAX_NAME_STR];
 
@@ -1372,7 +1380,6 @@ void ui_but_anim_decorate_update_from_flag(uiButDecorator *but);
 bool ui_but_is_editable(const uiBut *but) ATTR_WARN_UNUSED_RESULT;
 bool ui_but_is_editable_as_text(const uiBut *but) ATTR_WARN_UNUSED_RESULT;
 bool ui_but_is_toggle(const uiBut *but) ATTR_WARN_UNUSED_RESULT;
-bool ui_but_is_view_item(const uiBut *but) ATTR_WARN_UNUSED_RESULT;
 /**
  * Can we mouse over the button or is it hidden/disabled/layout.
  * \note ctrl is kind of a hack currently,
@@ -1406,9 +1413,7 @@ uiBut *ui_list_row_find_from_index(const struct ARegion *region,
                                    uiBut *listbox) ATTR_WARN_UNUSED_RESULT;
 uiBut *ui_view_item_find_mouse_over(const struct ARegion *region, const int xy[2])
     ATTR_NONNULL(1, 2);
-uiBut *ui_tree_row_find_mouse_over(const struct ARegion *region, const int xy[2])
-    ATTR_NONNULL(1, 2);
-uiBut *ui_tree_row_find_active(const struct ARegion *region);
+uiBut *ui_view_item_find_active(const struct ARegion *region);
 
 typedef bool (*uiButFindPollFn)(const uiBut *but, const void *customdata);
 /**
@@ -1543,16 +1548,23 @@ void ui_interface_tag_script_reload_queries(void);
 /* interface_view.cc */
 
 void ui_block_free_views(struct uiBlock *block);
-uiTreeViewHandle *ui_block_tree_view_find_matching_in_old_block(const uiBlock *new_block,
-                                                                const uiTreeViewHandle *new_view);
-uiGridViewHandle *ui_block_grid_view_find_matching_in_old_block(
-    const uiBlock *new_block, const uiGridViewHandle *new_view_handle);
-uiButTreeRow *ui_block_view_find_treerow_in_old_block(const uiBlock *new_block,
-                                                      const uiTreeViewItemHandle *new_item_handle);
+void ui_block_views_listen(const uiBlock *block,
+                           const struct wmRegionListenerParams *listener_params);
+uiViewHandle *ui_block_view_find_matching_in_old_block(const uiBlock *new_block,
+                                                       const uiViewHandle *new_view);
+
+uiButViewItem *ui_block_view_find_matching_view_item_but_in_old_block(
+    const uiBlock *new_block, const uiViewItemHandle *new_item_handle);
 
 /* interface_templates.c */
 
 struct uiListType *UI_UL_cache_file_layers(void);
+
+struct ID *ui_template_id_liboverride_hierarchy_make(struct bContext *C,
+                                                     struct Main *bmain,
+                                                     struct ID *owner_id,
+                                                     struct ID *id,
+                                                     const char **r_undo_push_label);
 
 #ifdef __cplusplus
 }

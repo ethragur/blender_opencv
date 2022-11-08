@@ -57,22 +57,28 @@ void Sampling::end_sync()
 {
   if (reset_) {
     viewport_sample_ = 0;
-    if (inst_.is_viewport()) {
-      interactive_mode_ = true;
-    }
   }
 
-  if (interactive_mode_) {
-    int interactive_sample_count = min_ii(interactive_sample_max_, sample_count_);
+  if (inst_.is_viewport()) {
 
-    if (viewport_sample_ < interactive_sample_count) {
-      /* Loop over the same starting samples. */
-      sample_ = sample_ % interactive_sample_count;
-    }
-    else {
-      /* Break out of the loop and resume normal pattern. */
-      sample_ = interactive_sample_count;
+    interactive_mode_ = viewport_sample_ < interactive_mode_threshold;
+
+    bool interactive_mode_disabled = (inst_.scene->eevee.flag & SCE_EEVEE_TAA_REPROJECTION) == 0;
+    if (interactive_mode_disabled) {
       interactive_mode_ = false;
+      sample_ = viewport_sample_;
+    }
+    else if (interactive_mode_) {
+      int interactive_sample_count = min_ii(interactive_sample_max_, sample_count_);
+
+      if (viewport_sample_ < interactive_sample_count) {
+        /* Loop over the same starting samples. */
+        sample_ = sample_ % interactive_sample_count;
+      }
+      else {
+        /* Break out of the loop and resume normal pattern. */
+        sample_ = interactive_sample_count;
+      }
     }
   }
 }
@@ -138,8 +144,6 @@ void Sampling::step()
   viewport_sample_++;
   sample_++;
 
-  std::cout << sample_ << " " << viewport_sample_ << std::endl;
-
   reset_ = false;
 }
 
@@ -173,7 +177,7 @@ float2 Sampling::sample_disk(const float2 &rand)
 float2 Sampling::sample_spiral(const float2 &rand)
 {
   /* Fibonacci spiral. */
-  float omega = M_PI * (1.0f + sqrtf(5.0f)) * rand.x;
+  float omega = 4.0f * M_PI * (1.0f + sqrtf(5.0f)) * rand.x;
   float r = sqrtf(rand.x);
   /* Random rotation. */
   omega += rand.y * 2.0f * M_PI;
@@ -211,14 +215,14 @@ void Sampling::dof_disk_sample_get(float *r_radius, float *r_theta) const
     samples_passed += ring_sample_count;
   }
 
-  *r_radius = ring / (float)dof_ring_count_;
-  *r_theta = 2.0f * M_PI * ring_sample / (float)ring_sample_count;
+  *r_radius = ring / float(dof_ring_count_);
+  *r_theta = 2.0f * M_PI * ring_sample / float(ring_sample_count);
 }
 
 /** \} */
 
 /* -------------------------------------------------------------------- */
-/** \name Sampling patterns
+/** \name Cumulative Distribution Function (CDF)
  * \{ */
 
 /* Creates a discrete cumulative distribution function table from a given curvemapping.
@@ -228,8 +232,8 @@ void Sampling::cdf_from_curvemapping(const CurveMapping &curve, Vector<float> &c
   BLI_assert(cdf.size() > 1);
   cdf[0] = 0.0f;
   /* Actual CDF evaluation. */
-  for (int u : cdf.index_range()) {
-    float x = (float)(u + 1) / (float)(cdf.size() - 1);
+  for (int u : IndexRange(cdf.size() - 1)) {
+    float x = float(u + 1) / float(cdf.size() - 1);
     cdf[u + 1] = cdf[u] + BKE_curvemapping_evaluateF(&curve, 0, x);
   }
   /* Normalize the CDF. */
@@ -245,14 +249,14 @@ void Sampling::cdf_from_curvemapping(const CurveMapping &curve, Vector<float> &c
 void Sampling::cdf_invert(Vector<float> &cdf, Vector<float> &inverted_cdf)
 {
   for (int u : inverted_cdf.index_range()) {
-    float x = (float)u / (float)(inverted_cdf.size() - 1);
+    float x = float(u) / float(inverted_cdf.size() - 1);
     for (int i : cdf.index_range()) {
       if (i == cdf.size() - 1) {
         inverted_cdf[u] = 1.0f;
       }
       else if (cdf[i] >= x) {
         float t = (x - cdf[i]) / (cdf[i + 1] - cdf[i]);
-        inverted_cdf[u] = ((float)i + t) / (float)(cdf.size() - 1);
+        inverted_cdf[u] = (float(i) + t) / float(cdf.size() - 1);
         break;
       }
     }

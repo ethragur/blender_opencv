@@ -51,11 +51,6 @@ class GreasePencilSculptAdvancedPanel:
         tool = brush.gpencil_sculpt_tool
         gp_settings = brush.gpencil_settings
 
-        col = layout.column(heading="Auto-Masking", align=True)
-        col.prop(gp_settings, "use_automasking_stroke", text="Stroke")
-        col.prop(gp_settings, "use_automasking_layer", text="Layer")
-        col.prop(gp_settings, "use_automasking_material", text="Material")
-
         if tool in {'SMOOTH', 'RANDOMIZE'}:
             col = layout.column(heading="Affect", align=True)
             col.prop(gp_settings, "use_edit_position", text="Position")
@@ -355,8 +350,7 @@ class GPENCIL_UL_annotation_layer(UIList):
 
             row = layout.row(align=True)
 
-            icon_xray = 'XRAY' if gpl.show_in_front else 'FACESEL'
-            row.prop(gpl, "show_in_front", text="", icon=icon_xray, emboss=False)
+            row.prop(gpl, "show_in_front", text="", icon='XRAY' if gpl.show_in_front else 'FACESEL', emboss=False)
 
             row.prop(gpl, "annotation_hide", text="", emboss=False)
         elif self.layout_type == 'GRID':

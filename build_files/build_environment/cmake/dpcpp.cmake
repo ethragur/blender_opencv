@@ -63,10 +63,12 @@ set(DPCPP_EXTRA_ARGS
   -DPython3_ROOT_DIR=${LIBDIR}/python/
   -DPython3_EXECUTABLE=${PYTHON_BINARY}
   -DPYTHON_EXECUTABLE=${PYTHON_BINARY}
+  -DLLDB_ENABLE_CURSES=OFF
+  -DLLVM_ENABLE_TERMINFO=OFF
 )
 
 if(WIN32)
-   list(APPEND DPCPP_EXTRA_ARGS -DPython3_FIND_REGISTRY=NEVER)
+  list(APPEND DPCPP_EXTRA_ARGS -DPython3_FIND_REGISTRY=NEVER)
 endif()
 
 ExternalProject_Add(external_dpcpp
@@ -78,8 +80,11 @@ ExternalProject_Add(external_dpcpp
   SOURCE_SUBDIR llvm
   LIST_SEPARATOR ^^
   CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${LIBDIR}/dpcpp ${DEFAULT_CMAKE_FLAGS} ${DPCPP_EXTRA_ARGS}
-  #CONFIGURE_COMMAND ${PYTHON_BINARY} ${BUILD_DIR}/dpcpp/src/external_dpcpp/buildbot/configure.py ${DPCPP_CONFIGURE_ARGS}
-  #BUILD_COMMAND echo "." #${PYTHON_BINARY} ${BUILD_DIR}/dpcpp/src/external_dpcpp/buildbot/compile.py
+  # CONFIGURE_COMMAND
+  #   ${PYTHON_BINARY}
+  #   ${BUILD_DIR}/dpcpp/src/external_dpcpp/buildbot/configure.py ${DPCPP_CONFIGURE_ARGS}
+  # BUILD_COMMAND
+  #   echo "." # ${PYTHON_BINARY} ${BUILD_DIR}/dpcpp/src/external_dpcpp/buildbot/compile.py
   INSTALL_COMMAND ${CMAKE_COMMAND} --build . -- deploy-sycl-toolchain
   PATCH_COMMAND ${PATCH_CMD} -p 1 -d ${BUILD_DIR}/dpcpp/src/external_dpcpp < ${PATCH_DIR}/dpcpp.diff
   INSTALL_DIR ${LIBDIR}/dpcpp
