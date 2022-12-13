@@ -12,6 +12,7 @@
 #include "kernel/integrator/shadow_catcher.h"
 
 #include "kernel/sample/pattern.h"
+#include <iostream>
 
 CCL_NAMESPACE_BEGIN
 

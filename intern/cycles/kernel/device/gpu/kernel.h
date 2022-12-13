@@ -46,6 +46,7 @@
 #  include "kernel/device/oneapi/context_end.h"
 #endif
 
+#include <iostream>
 #include "kernel/film/read.h"
 
 /* --------------------------------------------------------------------

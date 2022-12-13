@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include <iostream>
 CCL_NAMESPACE_BEGIN
 
 /* Spherical coordinates <-> Cartesian direction. */
@@ -167,68 +168,82 @@ ccl_device float2 direction_to_fisheye_lens_polynomial(
 
     ccl_device_inline float3
 fisheye_opencv_to_direction(float u, float v, float coeff0, float4 coeffs,
-        float fx, float fy, float cx, float cy)
+        float fx, float fy, float cx, float cy, float imageWidth, float imageHeight)
 {
-    u = (u - cx) / fx;// * width;
-    v = (v - cy) / fy;// * height;
 
-    float thetad = sqrtf(u * u + v * v);
-
-    bool converged = false;
-    float eps = 1e-08f;
-
-    if( thetad < -M_PI_F/2.0f) {
-        thetad = -M_PI_F/2.0f;
-    }
-
-    if( thetad > M_PI_F/2.0f) {
-        thetad = M_PI_F/2.0f;
-    }
-
-    float theta = thetad;
-
-    for(int i = 0; i < 16; i++)
+    //u += imageWidth / 2.0f;
+    for(int i = 0; i < 4; i++)
     {
-        float theta2 = theta * theta;
-        float theta4 = theta2 * theta2;
-        float theta6 = theta4 * theta2;
-        float theta8 = theta6 * theta2;
-
-        float k0_theta2 = coeffs[0] * theta2;
-        float k1_theta4 = coeffs[1] * theta4;
-        float k2_theta6 = coeffs[2] * theta6;
-        float k3_theta8 = coeffs[3] * theta8;
-
-        float theta_fix = (theta * (1.0f + k0_theta2 + k1_theta4 + k2_theta6 + k3_theta8) - thetad) /
-            ( 1.0f + 3.0f*k0_theta2 + 5.0f*k1_theta4 + 7.0f*k2_theta6 + 9.0f*k3_theta8);
-
-        theta = theta - theta_fix;
-
-        if( fabsf(theta_fix) < eps)
+        for(int j = 0; j < 4; j++)
         {
-            converged = true;
-            break;
+            float nu = u + 0.5f - ((float)i / (2.0f - 1.0f));
+            float nv = v + 0.5f - ((float)j / (2.0f - 1.0f));
+
+            //nv += imageHeight / 2.0f;
+            nu = (nu - cx) / fx;// * width;
+            nv = (nv - cy) / fy;// * height;
+
+            float thetad = sqrtf(nu * nu + nv * nv);
+
+            bool converged = false;
+            float eps = 1e-08f;
+
+            if( thetad < -M_PI_F/2.0f) {
+                thetad = -M_PI_F/2.0f;
+            }
+
+            if( thetad > M_PI_F/2.0f) {
+                thetad = M_PI_F/2.0f;
+            }
+
+            float theta = thetad;
+
+            for(int i = 0; i < 16; i++)
+            {
+                float theta2 = theta * theta;
+                float theta4 = theta2 * theta2;
+                float theta6 = theta4 * theta2;
+                float theta8 = theta6 * theta2;
+
+                float k0_theta2 = coeffs[0] * theta2;
+                float k1_theta4 = coeffs[1] * theta4;
+                float k2_theta6 = coeffs[2] * theta6;
+                float k3_theta8 = coeffs[3] * theta8;
+
+                float theta_fix = (theta * (1.0f + k0_theta2 + k1_theta4 + k2_theta6 + k3_theta8) - thetad) /
+                    ( 1.0f + 3.0f*k0_theta2 + 5.0f*k1_theta4 + 7.0f*k2_theta6 + 9.0f*k3_theta8);
+
+                theta = theta - theta_fix;
+
+                if( fabsf(theta_fix) < eps)
+                {
+                    converged = true;
+                    break;
+                }
+            }
+
+            bool theta_flipped = (thetad < 0.0f && theta > 0.0f) || (thetad > 0.0f && theta < 0.0f);
+
+            if ( converged && !theta_flipped)
+            {
+                float scale = tanf(theta) / thetad;
+                float x2 = nu*scale;
+                float y2 = nv*scale;
+                float r = sqrtf(x2*x2+y2*y2);
+
+                //if (fabsf(theta) > 0.5f * fov)
+                //  return zero_float3();
+
+                float phi = safe_acosf((r != 0.0f) ? x2 / r : 0.0f);
+
+                if (y2 < 0.0f)
+                    phi = -phi;
+
+                //return make_float3(x2,y2, -1);
+                //return make_float3(1.0f, x2, y2);
+                return make_float3(cosf(theta), -cosf(phi) * sinf(theta), sinf(phi) * sinf(theta));
+            }
         }
-    }
-
-    bool theta_flipped = (thetad < 0.0f && theta > 0.0f) || (thetad > 0.0f && theta < 0.0f);
-
-    if ( converged && !theta_flipped)
-    {
-        float scale = tanf(theta) / thetad;
-        float x2 = u*scale;
-        float y2 = v*scale;
-        float r = sqrtf(x2*x2+y2*y2);
-
-        //if (fabsf(theta) > 0.5f * fov)
-        //  return zero_float3();
-
-        float phi = safe_acosf((r != 0.0f) ? x2 / r : 0.0f);
-
-        if (y2 < 0.0f)
-            phi = -phi;
-
-        return make_float3(cosf(theta), -cosf(phi) * sinf(theta), sinf(phi) * sinf(theta));
     }
     return zero_float3();
 }
@@ -258,55 +273,55 @@ ccl_device float2 direction_to_fisheye_opencv(float3 dir, float coeff0, float4 c
 /* Omnidirectional Model <-> Cartesian direction */
 
 ccl_device float3 omni_to_direction(float u,
-	float v,
-	float imageWidth,
-	float imageHeight,
-	float radiusPixels,
-	float a0,
-	float a1,
-	float a2,
-	float a3,
-	float a4,
-	float kC,
-	float kD,
-	float kE,
-	float cx,
-	float cy,
-	float invDetAffine) {
-	// scale coordinates and shift center
-	u = u * imageWidth - cx;
-	v = imageHeight * (1.f - v) - cy;
+        float v,
+        float imageWidth,
+        float imageHeight,
+        float radiusPixels,
+        float a0,
+        float a1,
+        float a2,
+        float a3,
+        float a4,
+        float kC,
+        float kD,
+        float kE,
+        float cx,
+        float cy,
+        float invDetAffine) {
+    // scale coordinates and shift center
+    u = u * imageWidth - cx;
+    v = imageHeight * (1.f - v) - cy;
 
-	if(radiusPixels > 0.f && u*u + v*v > radiusPixels*radiusPixels)
-		return make_float3(0.f, 0.f, 0.f);
+    if(radiusPixels > 0.f && u*u + v*v > radiusPixels*radiusPixels)
+        return make_float3(0.f, 0.f, 0.f);
 
-	// inverse affine transformation
-	const float affine_u = invDetAffine * (kC * u - kE * v);
-	const float affine_v = invDetAffine * (-kD * u + v);
+    // inverse affine transformation
+    const float affine_u = invDetAffine * (kC * u - kE * v);
+    const float affine_v = invDetAffine * (-kD * u + v);
 
-	// ray z-direction
-	const float rho2 = affine_u * affine_u + affine_v * affine_v;
-	const float rho = sqrtf(rho2);
-	const float z = a0 + a1*rho + a2*rho2 + a3*rho2*rho + a4*rho2*rho2;
-	const float invnorm = 1.f / sqrtf(affine_u*affine_u + affine_v*affine_v + z*z);
+    // ray z-direction
+    const float rho2 = affine_u * affine_u + affine_v * affine_v;
+    const float rho = sqrtf(rho2);
+    const float z = a0 + a1*rho + a2*rho2 + a3*rho2*rho + a4*rho2*rho2;
+    const float invnorm = 1.f / sqrtf(affine_u*affine_u + affine_v*affine_v + z*z);
 
-	return make_float3(
-		 - invnorm * z,
-		 - invnorm * affine_u,
-		 - invnorm * affine_v);
+    return make_float3(
+            - invnorm * z,
+            - invnorm * affine_u,
+            - invnorm * affine_v);
 }
 
 ccl_device float2 direction_to_omni(float3 dir,
-	float imageWidth,
-	float imageHeight,
-	float kC,
-	float kD,
-	float kE,
-	float cx,
-	float cy)
+        float imageWidth,
+        float imageHeight,
+        float kC,
+        float kD,
+        float kE,
+        float cx,
+        float cy)
 {
-	// Not implemented yet.
-	return make_float2(0.0f, 0.0f);
+    // Not implemented yet.
+    return make_float2(0.0f, 0.0f);
 }
 
 
@@ -348,25 +363,25 @@ ccl_device float2 direction_to_mirrorball(float3 dir)
 }
 
 /* Single face of a equiangular cube map projection as described in
-   https://blog.google/products/google-ar-vr/bringing-pixels-front-and-center-vr-video/ */
+https://blog.google/products/google-ar-vr/bringing-pixels-front-and-center-vr-video/ */
 ccl_device float3 equiangular_cubemap_face_to_direction(float u, float v)
 {
-  u = (1.0f - u);
+    u = (1.0f - u);
 
-  u = tanf(u * M_PI_2_F - M_PI_4_F);
-  v = tanf(v * M_PI_2_F - M_PI_4_F);
+    u = tanf(u * M_PI_2_F - M_PI_4_F);
+    v = tanf(v * M_PI_2_F - M_PI_4_F);
 
-  return make_float3(1.0f, u, v);
+    return make_float3(1.0f, u, v);
 }
 
 ccl_device float2 direction_to_equiangular_cubemap_face(float3 dir)
 {
-  float u = atan2f(dir.y, dir.x) * 2.0f / M_PI_F + 0.5f;
-  float v = atan2f(dir.z, dir.x) * 2.0f / M_PI_F + 0.5f;
+    float u = atan2f(dir.y, dir.x) * 2.0f / M_PI_F + 0.5f;
+    float v = atan2f(dir.z, dir.x) * 2.0f / M_PI_F + 0.5f;
 
-  u = 1.0f - u;
+    u = 1.0f - u;
 
-  return make_float2(u, v);
+    return make_float2(u, v);
 }
 
 ccl_device_inline float3 panorama_to_direction(ccl_constant KernelCamera *cam, float u, float v)
@@ -396,7 +411,9 @@ ccl_device_inline float3 panorama_to_direction(ccl_constant KernelCamera *cam, f
                     cam->fisheye_focal_x,
                     cam->fisheye_focal_y,
                     cam->fisheye_optical_sensor_x,
-                    cam->fisheye_optical_sensor_y);
+                    cam->fisheye_optical_sensor_y,
+                    cam->width,
+                    cam->height);
         case PANORAMA_OMNIDIRECTIONAL:
             return omni_to_direction(u,
                     v,
@@ -457,7 +474,7 @@ ccl_device_inline float2 direction_to_panorama(ccl_constant KernelCamera *cam, f
         default:
             return direction_to_fisheye_equisolid(
                     dir, cam->fisheye_lens, cam->sensorwidth, cam->sensorheight);
-  }
+    }
 }
 
 ccl_device_inline void spherical_stereo_transform(ccl_constant KernelCamera *cam,

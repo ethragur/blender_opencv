@@ -18,6 +18,7 @@
 #include "util/atomic.h"
 #include "util/log.h"
 #include "util/tbb.h"
+#include <iostream>
 
 CCL_NAMESPACE_BEGIN
 
@@ -81,6 +82,7 @@ void PathTraceWorkCPU::render_samples(RenderStatistics &statistics,
 
       const int y = work_index / image_width;
       const int x = work_index - y * image_width;
+      //std::cout << "x: " << x << ", y: " << y << ", res: " << image_width << "/" << image_height << std::endl;
 
       KernelWorkTile work_tile;
       work_tile.x = effective_buffer_params_.full_x + x;

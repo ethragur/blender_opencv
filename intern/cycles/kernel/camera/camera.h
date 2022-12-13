@@ -7,6 +7,7 @@
 #include "kernel/sample/mapping.h"
 #include "kernel/util/differential.h"
 #include "kernel/util/lookup_table.h"
+#include <iostream>
 
 CCL_NAMESPACE_BEGIN
 
@@ -238,9 +239,12 @@ ccl_device_inline void camera_sample_panorama(ccl_constant KernelCamera *cam,
   ProjectionTransform rastertocamera = cam->rastertocamera;
   float3 Pcamera = transform_perspective(&rastertocamera, make_float3(raster_x, raster_y, 0.0f));
 
+  //std::cerr << "pcamx: " << Pcamera.x << " ; pcamy: " << Pcamera.y << std::endl;
+  //std::cerr << "rasterx: " << raster_x << " ; rastery: " << raster_y << std::endl;
+
   /* create ray form raster position */
   float3 P = zero_float3();
-  float3 D = panorama_to_direction(cam, Pcamera.x, Pcamera.y);
+  float3 D = panorama_to_direction(cam, raster_x, raster_y);
 
   /* indicates ray should not receive any light, outside of the lens */
   if (is_zero(D)) {
@@ -249,7 +253,7 @@ ccl_device_inline void camera_sample_panorama(ccl_constant KernelCamera *cam,
   }
 
   /* modify ray for depth of field */
-  float aperturesize = cam->aperturesize;
+  float aperturesize = -1.0f; //cam->aperturesize;
 
   if (aperturesize > 0.0f) {
     /* sample point on aperture */
@@ -288,6 +292,8 @@ ccl_device_inline void camera_sample_panorama(ccl_constant KernelCamera *cam,
 
   ray->P = P;
   ray->D = D;
+
+#undef __RAY_DIFFERENTIALS__
 
 #ifdef __RAY_DIFFERENTIALS__
   /* Ray differentials, computed from scratch using the raster coordinates
@@ -352,6 +358,7 @@ ccl_device_inline void camera_sample(KernelGlobals kg,
   int filter_table_offset = kernel_data.tables.filter_table_offset;
   float raster_x = x + lookup_table_read(kg, filter_u, filter_table_offset, FILTER_TABLE_SIZE);
   float raster_y = y + lookup_table_read(kg, filter_v, filter_table_offset, FILTER_TABLE_SIZE);
+  //std::cout << "x: " << x << ", y: " << y << ", raster_x: " << raster_x << ", raster_y: " << raster_y << std::endl;
 
   /* motion blur */
   if (kernel_data.cam.shuttertime == -1.0f) {
@@ -400,7 +407,7 @@ ccl_device_inline void camera_sample(KernelGlobals kg,
   }
   else {
     ccl_global const DecomposedTransform *cam_motion = kernel_data_array(camera_motion);
-    camera_sample_panorama(&kernel_data.cam, cam_motion, raster_x, raster_y, lens_u, lens_v, ray);
+    camera_sample_panorama(&kernel_data.cam, cam_motion, (float)x, (float)y, lens_u, lens_v, ray);
   }
 }
 
