@@ -170,82 +170,105 @@ ccl_device float2 direction_to_fisheye_lens_polynomial(
 fisheye_opencv_to_direction(float u, float v, float coeff0, float4 coeffs,
         float fx, float fy, float cx, float cy, float imageWidth, float imageHeight)
 {
+    // Supersampling for numerical solver
+    int solved = 0;
+    float3 solutions[4];
 
-    //u += imageWidth / 2.0f;
-    for(int i = 0; i < 4; i++)
+    for(int i = 0; i < 5; i++)
     {
-        for(int j = 0; j < 4; j++)
+        float nu = u + ((i % 2 == 0) ? -1 : 1) * (( float(i)/4.0f ) / (i % 2 == 0) ? 2.0f : 1.0f);
+        float nv = v + ((i % 2 == 0) ? -1 : 1) * (( float(i)/4.0f ) / (i % 2 == 0) ? 2.0f : 1.0f);
+
+        nu = (nu - cx) / fx;// * width;
+        nv = (nv - cy) / fy;// * height;
+
+        float thetad = sqrtf(nu * nu + nv * nv);
+
+        bool converged = false;
+        float eps = 1e-06f;
+
+        if( thetad < -M_PI_F/2.0f) {
+            thetad = -M_PI_F/2.0f;
+        }
+
+        if( thetad > M_PI_F/2.0f) {
+            thetad = M_PI_F/2.0f;
+        }
+
+        float theta = thetad;
+
+        for(int i = 0; i < 18; i++)
         {
-            float nu = u + 0.5f - ((float)i / (2.0f - 1.0f));
-            float nv = v + 0.5f - ((float)j / (2.0f - 1.0f));
+            float theta2 = theta * theta;
+            float theta4 = theta2 * theta2;
+            float theta6 = theta4 * theta2;
+            float theta8 = theta6 * theta2;
 
-            //nv += imageHeight / 2.0f;
-            nu = (nu - cx) / fx;// * width;
-            nv = (nv - cy) / fy;// * height;
+            float k0_theta2 = coeffs[0] * theta2;
+            float k1_theta4 = coeffs[1] * theta4;
+            float k2_theta6 = coeffs[2] * theta6;
+            float k3_theta8 = coeffs[3] * theta8;
 
-            float thetad = sqrtf(nu * nu + nv * nv);
+            float theta_fix = (theta * (1.0f + k0_theta2 + k1_theta4 + k2_theta6 + k3_theta8) - thetad) /
+                ( 1.0f + 3.0f*k0_theta2 + 5.0f*k1_theta4 + 7.0f*k2_theta6 + 9.0f*k3_theta8);
 
-            bool converged = false;
-            float eps = 1e-08f;
+            theta = theta - theta_fix;
 
-            if( thetad < -M_PI_F/2.0f) {
-                thetad = -M_PI_F/2.0f;
-            }
-
-            if( thetad > M_PI_F/2.0f) {
-                thetad = M_PI_F/2.0f;
-            }
-
-            float theta = thetad;
-
-            for(int i = 0; i < 16; i++)
+            if( fabsf(theta_fix) < eps)
             {
-                float theta2 = theta * theta;
-                float theta4 = theta2 * theta2;
-                float theta6 = theta4 * theta2;
-                float theta8 = theta6 * theta2;
-
-                float k0_theta2 = coeffs[0] * theta2;
-                float k1_theta4 = coeffs[1] * theta4;
-                float k2_theta6 = coeffs[2] * theta6;
-                float k3_theta8 = coeffs[3] * theta8;
-
-                float theta_fix = (theta * (1.0f + k0_theta2 + k1_theta4 + k2_theta6 + k3_theta8) - thetad) /
-                    ( 1.0f + 3.0f*k0_theta2 + 5.0f*k1_theta4 + 7.0f*k2_theta6 + 9.0f*k3_theta8);
-
-                theta = theta - theta_fix;
-
-                if( fabsf(theta_fix) < eps)
-                {
-                    converged = true;
-                    break;
-                }
+                converged = true;
+                break;
             }
+        }
 
-            bool theta_flipped = (thetad < 0.0f && theta > 0.0f) || (thetad > 0.0f && theta < 0.0f);
+        bool theta_flipped = (thetad < 0.0f && theta > 0.0f) || (thetad > 0.0f && theta < 0.0f);
 
-            if ( converged && !theta_flipped)
+        if ( converged && !theta_flipped)
+        {
+            float scale = tanf(theta) / thetad;
+            float x2 = nu*scale;
+            float y2 = nv*scale;
+            float r = sqrtf(x2*x2+y2*y2);
+
+            //if (fabsf(theta) > 0.5f * fov)
+            //  return zero_float3();
+
+            float phi = safe_acosf((r != 0.0f) ? x2 / r : 0.0f);
+
+            if (y2 < 0.0f)
+                phi = -phi;
+
+            //return make_float3(x2,y2, -1);
+            //return make_float3(1.0f, x2, y2);
+            if( i == 0 )
             {
-                float scale = tanf(theta) / thetad;
-                float x2 = nu*scale;
-                float y2 = nv*scale;
-                float r = sqrtf(x2*x2+y2*y2);
-
-                //if (fabsf(theta) > 0.5f * fov)
-                //  return zero_float3();
-
-                float phi = safe_acosf((r != 0.0f) ? x2 / r : 0.0f);
-
-                if (y2 < 0.0f)
-                    phi = -phi;
-
-                //return make_float3(x2,y2, -1);
-                //return make_float3(1.0f, x2, y2);
                 return make_float3(cosf(theta), -cosf(phi) * sinf(theta), sinf(phi) * sinf(theta));
+            }
+            std::cout << "Not on 0 solved" << std::endl;
+            solutions[solved++] = make_float3(cosf(theta), -cosf(phi) * sinf(theta), sinf(phi) * sinf(theta));
+
+            // If we have exactly 2 solutions and we are on step 2 we can also break out
+            if( solved == 2 && i == 2)
+            {
+                break;
             }
         }
     }
-    return zero_float3();
+
+    // If we do not have a single solution, return 0 vector
+    if( solved == 0 )
+    {
+        return zero_float3();
+    }
+
+    float3 acc = zero_float3();
+
+    for(int i = 0; i < solved; i++)
+    {
+        acc += solutions[i];
+    }
+
+    return acc / solved;
 }
 
 ccl_device float2 direction_to_fisheye_opencv(float3 dir, float coeff0, float4 coeffs,
