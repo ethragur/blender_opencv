@@ -174,7 +174,9 @@ fisheye_opencv_to_direction(float u, float v, float coeff0, float4 coeffs,
     int solved = 0;
     float3 solutions[4];
 
-    for(int i = 0; i < 5; i++)
+    int j = 0;
+    float root_theta = 0.0f;
+    for(int i = 0;; i++)
     {
         float nu = u + ((i % 2 == 0) ? -1 : 1) * (( float(i)/4.0f ) / (i % 2 == 0) ? 2.0f : 1.0f);
         float nv = v + ((i % 2 == 0) ? -1 : 1) * (( float(i)/4.0f ) / (i % 2 == 0) ? 2.0f : 1.0f);
@@ -196,6 +198,11 @@ fisheye_opencv_to_direction(float u, float v, float coeff0, float4 coeffs,
         }
 
         float theta = thetad;
+        if( root_theta != 0.0f )
+        {
+            theta = root_theta;
+            root_theta = 0.0f;
+        }
 
         for(int i = 0; i < 18; i++)
         {
@@ -244,31 +251,13 @@ fisheye_opencv_to_direction(float u, float v, float coeff0, float4 coeffs,
             {
                 return make_float3(cosf(theta), -cosf(phi) * sinf(theta), sinf(phi) * sinf(theta));
             }
-            std::cout << "Not on 0 solved" << std::endl;
-            solutions[solved++] = make_float3(cosf(theta), -cosf(phi) * sinf(theta), sinf(phi) * sinf(theta));
-
-            // If we have exactly 2 solutions and we are on step 2 we can also break out
-            if( solved == 2 && i == 2)
-            {
-                break;
-            }
+            root_theta = theta;
+            i = 0;
         }
+
+        if( j++ > 32 )
+            return zero_float3();
     }
-
-    // If we do not have a single solution, return 0 vector
-    if( solved == 0 )
-    {
-        return zero_float3();
-    }
-
-    float3 acc = zero_float3();
-
-    for(int i = 0; i < solved; i++)
-    {
-        acc += solutions[i];
-    }
-
-    return acc / solved;
 }
 
 ccl_device float2 direction_to_fisheye_opencv(float3 dir, float coeff0, float4 coeffs,
