@@ -164,7 +164,17 @@ ccl_device float2 direction_to_fisheye_lens_polynomial(
 
   return make_float2(u, v);
 }
+ccl_device_inline float3 fisheye_lens_opencv_to_direction(
+    float u, float v, float coeff0, float4 coeffs, float fov, float width, float height)
+{
+    return zero_float3();
+}
 
+ccl_device float2 direction_to_fisheye_lens_opencv(
+    float3 dir, float coeff0, float4 coeffs, float width, float height)
+{
+    return zero_float2();
+}
 /* Mirror Ball <-> Cartesion direction */
 
 ccl_device float3 mirrorball_to_direction(float u, float v)
@@ -242,6 +252,14 @@ ccl_device_inline float3 panorama_to_direction(ccl_constant KernelCamera *cam, f
                                                   cam->fisheye_fov,
                                                   cam->sensorwidth,
                                                   cam->sensorheight);
+    case PANORAMA_FISHEYE_LENS_OPENCV:
+      return fisheye_lens_opencv_to_direction(u,
+                                                  v,
+                                                  cam->fisheye_lens_polynomial_bias,
+                                                  cam->fisheye_lens_polynomial_coefficients,
+                                                  cam->fisheye_fov,
+                                                  cam->sensorwidth,
+                                                  cam->sensorheight);
     case PANORAMA_FISHEYE_EQUISOLID:
     default:
       return fisheye_equisolid_to_direction(
@@ -262,6 +280,12 @@ ccl_device_inline float2 direction_to_panorama(ccl_constant KernelCamera *cam, f
       return direction_to_fisheye(dir, cam->fisheye_fov);
     case PANORAMA_FISHEYE_LENS_POLYNOMIAL:
       return direction_to_fisheye_lens_polynomial(dir,
+                                                  cam->fisheye_lens_polynomial_bias,
+                                                  cam->fisheye_lens_polynomial_coefficients,
+                                                  cam->sensorwidth,
+                                                  cam->sensorheight);
+    case PANORAMA_FISHEYE_LENS_OPENCV:
+      return direction_to_fisheye_lens_opencv(dir,
                                                   cam->fisheye_lens_polynomial_bias,
                                                   cam->fisheye_lens_polynomial_coefficients,
                                                   cam->sensorwidth,

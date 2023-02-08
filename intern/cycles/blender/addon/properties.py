@@ -68,6 +68,8 @@ enum_panorama_types = (
                           "Similar to most fisheye modern lens, takes sensor dimensions into consideration", 2),
     ('FISHEYE_LENS_POLYNOMIAL', "Fisheye Lens Polynomial",
      "Defines the lens projection as polynomial to allow real world camera lenses to be mimicked", 4),
+    ('FISHEYE_LENS_OPENCV', "OpenCV Fisheye Lens Model",
+     "Defines the lens projection as polynomial to allow real world camera lenses to be mimicked", 6),
 )
 
 enum_curve_shape = (
@@ -1026,6 +1028,30 @@ class CyclesCameraSettings(bpy.types.PropertyGroup):
         name="Fisheye Polynomial K4",
         description="Coefficient K4 of the lens polynomial",
         default=camera.default_fisheye_polynomial[4], precision=6, step=0.1, subtype='ANGLE',
+    )
+
+    fisheye_focal_x: FloatProperty(
+        name="Fisheye Focal X",
+        description="Focal X of the opencv fisheye lens",
+        default=0.0, precision=6, step=0.1, subtype='ANGLE',
+    )
+
+    fisheye_focal_y: FloatProperty(
+        name="Fisheye Focal Y",
+        description="Focal Y of the opencv fisheye lens",
+        default=0.0, precision=6, step=0.1, subtype='ANGLE',
+    )
+
+    fisheye_optical_sensor_x: FloatProperty(
+        name="Fisheye Optiocal Sensor X",
+        description="Optical sensor x of the opencv fisheye lens",
+        default=0.0, precision=6, step=0.1, subtype='ANGLE',
+    )
+
+    fisheye_optical_sensor_y: FloatProperty(
+        name="Fisheye Optiocal Sensor y",
+        description="Optical sensor y of the opencv fisheye lens",
+        default=0.0, precision=6, step=0.1, subtype='ANGLE',
     )
 
     @classmethod
