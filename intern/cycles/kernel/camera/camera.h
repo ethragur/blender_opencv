@@ -240,7 +240,12 @@ ccl_device_inline void camera_sample_panorama(ccl_constant KernelCamera *cam,
 
   /* create ray form raster position */
   float3 P = zero_float3();
-  float3 D = panorama_to_direction(cam, Pcamera.x, Pcamera.y);
+  float3 D = zero_float3();
+  if( cam->panorama_type == PANORAMA_FISHEYE_LENS_OPENCV) {
+      D = panorama_to_direction(cam, raster_x, raster_y);
+  } else {
+      D = panorama_to_direction(cam, Pcamera.x, Pcamera.y);
+  }
 
   /* indicates ray should not receive any light, outside of the lens */
   if (is_zero(D)) {
@@ -400,7 +405,8 @@ ccl_device_inline void camera_sample(KernelGlobals kg,
   }
   else {
     ccl_global const DecomposedTransform *cam_motion = kernel_data_array(camera_motion);
-    camera_sample_panorama(&kernel_data.cam, cam_motion, raster_x, raster_y, lens_u, lens_v, ray);
+    //camera_sample_panorama(&kernel_data.cam, cam_motion, raster_x, raster_y, lens_u, lens_v, ray);
+    camera_sample_panorama(&kernel_data.cam, cam_motion, x, y, lens_u, lens_v, ray);
   }
 }
 
